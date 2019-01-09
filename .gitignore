@@ -1,0 +1,14 @@
+src/log/*
+
+tags
+
+*.out
+*.[oa]
+*.gch
+
+*.txt
+rules_*
+*_df
+
+*.part
+
