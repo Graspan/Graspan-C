@@ -17,13 +17,19 @@ Vit::Vit(int size,vertexid_t *start,vertexid_t *end,int *degrees) {
 
 Vit::Vit() {
 	this->size = 0;
-	this->capacity = 10;
+	this->capacity = 8;
 	p = (VitNode*)calloc(capacity,sizeof(VitNode));
 }
 
 Vit::~Vit() {
-	if(p)	
-		free(p);	
+	if(p) {
+		free(p);
+		p = NULL;
+	}	
+}
+
+void Vit::setDegree(int vitId,int numEdges) {
+	p[vitId].degree = numEdges;	
 }
 
 void Vit::setVitValue(int vitId,vertexid_t start,vertexid_t end,int numEdges) {

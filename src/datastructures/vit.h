@@ -25,6 +25,8 @@ class Vit {
 		inline int getEnd(int vitId){return p[vitId].end;};
 		inline int getDegree(int vitId){return p[vitId].degree;};
 
+		void setDegree(int vitId,int numEdges);
+
 		void add(vertexid_t start,vertexid_t end,int numEdges);
 		void setVitValue(int vitId,vertexid_t start,vertexid_t end,int numEdges);
 		void print();

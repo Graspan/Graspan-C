@@ -9,7 +9,7 @@ using std::cout;
 using std::endl;
 
 Preproc::Preproc() {
-	totalNumEdges = totalNumVertex = maxVid = 0;	
+	totalNumEdges = maxVid = totalDuplicateEdges = 0;	
 }
 
 Preproc::~Preproc() {
@@ -31,7 +31,7 @@ void Preproc::setNumEdges(Context &c) {
 	}
 
 	char str[512];
-	maxVid = totalNumEdges = totalNumVertex = 0;
+	maxVid = totalNumEdges = 0;
 	while(fin.getline(str,sizeof(str))) {
 		char *p = strtok(str,"\t");
 		if(p) {
@@ -42,7 +42,7 @@ void Preproc::setNumEdges(Context &c) {
 	} 
 	fin.close();
 
-	numEdges = new int[maxVid+1];
+	numEdges = new vertexid_t[maxVid+1];
 	for(int i = 0;i <= maxVid;++i)
 			numEdges[i] = 0;
 	FILE *fp = fopen(fname,"r");
@@ -57,15 +57,8 @@ void Preproc::setNumEdges(Context &c) {
 			++totalNumEdges;
 		}	
 	}
-	for(int i = 0;i <= maxVid;++i) {
-		if(numEdges[i])
-			++totalNumVertex;
-	}
 	fclose(fp);
 	
-	cout << "totalNumVertex: " << totalNumVertex << endl;
-	cout << "totalNumEdges: " << totalNumEdges << endl;
-	cout << "maxVertexId: " << maxVid << endl;
 }
 
 // TODO: calculate numPartitions based on memoryBudget
@@ -73,7 +66,7 @@ void Preproc::setVIT(Context &c) {
 	setNumEdges(c);	
 	int numErules = c.grammar.getNumErules();
 	int numPartitions = c.getNumPartitions();
-	int total_size = totalNumEdges + (totalNumVertex) * numErules;
+	int total_size = totalNumEdges + (maxVid+1) * numErules;
 	int partition_size = (total_size) / numPartitions;
 
 	int part_id = 0; int cur_size = 0; int i = 0; int v_start = 0;
@@ -95,29 +88,29 @@ void Preproc::setVIT(Context &c) {
 			}
 		}	
 	}
-	cout << "numErules:" << numErules << endl;
-	cout << "old numPartitions: " << numPartitions << endl;
-	cout << "current numPartitions: " << part_id << endl;
-	cout << "total_size: " << total_size << endl;
-	cout << "per_partition_size: " << partition_size << endl; 
+	cout << "numVertex: " << maxVid+1 << endl;
+	cout << "numEdges: " << total_size << endl;
 	c.vit.print();
 }
 
 void Preproc::savePartitions(Context &c) {
 	
-	vertexid_t **vertices;
-	char **labels;
-	int numErules = c.grammar.getNumErules();
-
-	vertices = (vertexid_t**)malloc(sizeof(vertexid_t*) * (maxVid+1));
-	labels = (char**)malloc(sizeof(char*) * (maxVid+1));
-	int *index = (int*)calloc((maxVid+1),sizeof(int));
-
+	int numErules = c.grammar.getNumErules();	
+	int size = totalNumEdges + (maxVid+1) * numErules;
+	
+	int *addr = new int[(maxVid+1)];
+	int address = 0;
 	for(int i = 0;i <= maxVid;++i) {
-		*(vertices+i) = (vertexid_t*)malloc(sizeof(vertexid_t) * (numEdges[i] + numErules));
-		*(labels+i) = (char*)malloc(sizeof(char) * numEdges[i] * (numEdges[i] + numErules));
-	}	
-
+		addr[i] = address;
+		address += (numEdges[i] + numErules);
+	}
+	vertexid_t *vertices = new vertexid_t[size];
+	char *labels = new char[size];
+	int *index = new int[maxVid+1];
+	for(int i = 0;i <= maxVid;++i)
+		index[i] = 0;	
+	
+	// add edges of each vertex from graph_file
 	FILE *fp = fopen(c.getGraphFile(),"r");
 	if(!fp) {
 		cout << "can't open graph_file: " << c.getGraphFile() << endl;
@@ -125,51 +118,79 @@ void Preproc::savePartitions(Context &c) {
 	}
 	vertexid_t src,dst; char rawLabel[GRAMMAR_STR_LEN];
 	while(fscanf(fp,"%d\t%d\t%s\n",&src,&dst,rawLabel) != EOF) {
-		vertices[src][index[src]] = dst;
-		labels[src][index[src]] = c.grammar.getLabelValue(rawLabel);
+		vertices[addr[src] + index[src]] = dst;
+		labels[addr[src] + index[src]] = c.grammar.getLabelValue(rawLabel);
 		++index[src];
 	}
+	// add e-rule edges
 	for(int i = 0;i <= maxVid;++i) {
 		for(int j = 0;j < numErules;++j) {
-			vertices[i][index[i]] = i;
-			labels[i][index[i]] = (char)(j-128);
+			vertices[addr[i] + index[i]] = i;
+			labels[addr[i] + index[i]] = (char)(j-128);
 			++index[i];
 		}	
 	}
-	
-	//mergeAndSort	
-	for(int i = 0;i <= maxVid;++i)
-		quickSort3Way(vertices[i],labels[i],0,index[i]-1);
 
-	//savePartitionsToFile (txt format for test)
+	// sort edges of each vertex
+	for(int i = 0;i <= maxVid;++i)
+		quickSort3Way(vertices + addr[i],labels + addr[i],0,index[i]-1);
+	
+	/* remove duplicate edges of each vertex
+	 * save partitions To file (binary format)
+	 */
 	for(int i = 0;i < c.vit.getSize();++i) {
 		vertexid_t v_start,v_end;
 		v_start = c.vit.getStart(i);
 		v_end = c.vit.getEnd(i);
-		
-		char filename[256];
-		sprintf(filename,"%d.part",i);
+		int dupleNum = 0;
 
-		FILE *f = fopen(filename,"w");
+		char filename[256];
+		sprintf(filename,"%d.part",i);	
+		FILE *f = fopen(filename,"wb");
 		for(vertexid_t j = v_start; j <= v_end;++j) {
 			int edgeNum = numEdges[j] + numErules;
-			if(!edgeNum)
+			if(!numEdges[j])
 				continue;
-			fprintf(f,"%d,%d\n",j,edgeNum);
-			for(int k = 0;k < edgeNum;++k) {
-				fprintf(f,"(%d,%d)\n",vertices[j][k],labels[j][k]);	
+			//remove duplicate edges
+			vertexid_t *edge_v = new vertexid_t[edgeNum];
+			char *edge_l = new char[edgeNum];
+			*edge_v = vertices[addr[j]]; *edge_l = labels[addr[j]];
+			int len = 1;
+			for(int k = 1;k < edgeNum;++k) {
+				if(vertices[addr[j] + k] == vertices[addr[j] + k-1] && labels[addr[j] + k] == labels[addr[j] + k-1]) {
+					continue;
+				}
+				else {
+					edge_v[len] = vertices[addr[j] + k];
+					edge_l[len] = labels[addr[j] + k];
+					++len;
+				}
 			}
+			dupleNum += (edgeNum - len);
+			//save partitions to binary file
+			
+			fwrite((const void*)& j,sizeof(vertexid_t),1,f);
+			fwrite((const void*)& len,sizeof(vertexid_t),1,f);
+			for(int k = 0;k < len;++k) {
+				fwrite((const void*)& edge_v[k],sizeof(vertexid_t),1,f);
+				fwrite((const void*)& edge_l[k],sizeof(char),1,f);
+			}
+			delete[] edge_v;
+			delete[] edge_l;
 		}
-		fclose(f);
+		fclose(f);	
+		if(dupleNum) {
+			totalDuplicateEdges += dupleNum;
+			c.vit.setDegree(i,c.vit.getDegree(i)-dupleNum);
+		}	
 	}
+	
+	cout << "totalDuplicateEdges: " << totalDuplicateEdges << endl;
 
-	for(int i = 0;i <= maxVid;++i) {
-		free(*(vertices+i));
-		free(*(labels+i));
-	}
-	free(index);
-	free(vertices);
-	free(labels);
+	delete[] addr;
+	delete[] index;
+	delete[] vertices;
+	delete[] labels;
 }
 
 void insertSort(vertexid_t *A,char *B,int l,int r) {
@@ -188,15 +209,73 @@ void insertSort(vertexid_t *A,char *B,int l,int r) {
 }
 
 void quickSort3Way(vertexid_t *A,char* B,int l,int r) {
+
 	if(l >= r)
 		return;	
-	if(r - l + 1 <= 10)	
+	if(r - l + 1 <= 0)	
 		insertSort(A,B,l,r);
 	else {
-		//TODO:
-	}
+		int pivot = getPivot(A,B,l,r);
+		int p,q,i,j;
+		i = p = l;
+		j = q = r-1;
+
+		while(1) {
+			while(i < r && A[i] <= pivot) {
+				if(A[i] == pivot) {
+					std::swap(A[i],A[p]);
+					std::swap(B[i],B[p]);
+					++p;
+				}
+				++i;
+			}
+			while(l <= j && A[j] >= pivot) {
+				if(A[j] == pivot) {
+					std::swap(A[j],A[q]);
+					std::swap(B[j],B[q]);
+					--q;
+				}	
+				--j;
+			}
+			if(i >= j)
+				break;
+			std::swap(A[i],A[j]);
+			std::swap(B[i],B[j]);
+			++i;--j;
+		}
+		--i; --p;
+		while(p >= l) {
+			std::swap(A[i],A[p]);
+			std::swap(B[i],B[p]);
+			--i; --p;
+		}
+		++j; ++q;
+		while(q <= r) {
+			std::swap(A[j],A[q]);
+			std::swap(B[j],B[q]);
+			++j;++q;
+		}
+
+		quickSort3Way(A,B,l,i);
+		quickSort3Way(A,B,j,r);
+	}	
 }
 
 int getPivot(vertexid_t *A,char *B,int l,int r) {
-	//TODO:
+	int mid = (l + r) / 2; int k = l;
+	if(A[mid] < A[k]) k = mid;
+	if(A[r] < A[k]) k = r;
+	if(k != l) {
+		std::swap(A[k],A[l]);
+		std::swap(B[k],B[l]);
+	}
+	if(mid != r && A[mid] < A[r]) {
+		std::swap(A[mid],A[r]);
+		std::swap(B[mid],B[r]);
+	}
+	return A[r];
+}
+
+void Preproc::test(Context &c) {
+	c.vit.print();
 }

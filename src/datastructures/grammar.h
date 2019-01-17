@@ -4,11 +4,11 @@
 
 class Grammar {
 	private:
-		char rawLabel[256][GRAMMAR_STR_LEN];    // rawLabel[0]~rawLabel[255] -> (char)-128 ~ (char)127
+		char rawLabel[256][GRAMMAR_STR_LEN];	// rawLabel[0]~rawLabel[255] -> (char)-128 ~ (char)127
 		int numRawLabels;
-		bool erules[256];          				// e-rule
-		char rules[65536];		   				// s-rule && d-rule
-												// rules[0]~rules[65535] -> (short)-32768 ~ (short)32767
+		bool erules[256];	// e-rule
+		char rules[65536];	// s-rule && d-rule
+							// rules[0]~rules[65535] -> (short)-32768 ~ (short)32767
 
 	public:
 		Grammar();
