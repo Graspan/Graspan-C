@@ -18,12 +18,13 @@ class Context
 		Vit vit;
 
 		Context(int argc,char **argv);
+		void clear();
 
-		char *getGraphFile();
-		char *getGrammarFile();
-		int getNumPartitions();
-		unsigned long long int getMemBudget();
-		int getNumThreads();
+		inline char *getGraphFile() {return graphFile;}
+		char *getGrammarFile() {return grammarFile;}
+		int getNumPartitions() {return numPartitions;}
+		unsigned long long int getMemBudget() {return memBudget;}
+		int getNumThreads() {return numThreads;}
 };
 
 

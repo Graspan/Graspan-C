@@ -2,7 +2,7 @@
 
 find . -name "*.h" |xargs wc -l
 find . -name "*.cpp" | xargs wc -l
-g++ *.cpp datastructures/*.cpp preproc/*.cpp compute/*.cpp
+g++ *.cpp datastructures/*.cpp preproc/*.cpp compute/*.cpp compute/array/*.cpp
 #rm *.part
 #valgrind ./a.out lnx_init_df rules_dataflow 2 4 4
 #./a.out lnx_init_df rules_dataflow 2 4 4

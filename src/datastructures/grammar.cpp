@@ -129,7 +129,3 @@ char Grammar::getLabelValue(char *str) {
 	}
 	return (char)127;
 }
-
-inline short Grammar::changeShort(char a,char b) {
-	return (short)a << 8 | ((short)b & 0xFF); 
-}

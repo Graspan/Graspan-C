@@ -5,15 +5,13 @@
 using std::cout;
 using std::endl;
 
-Context::Context(int argc, char **argv) 
-{
-	if(argc != 6)
-	{
+Context::Context(int argc, char **argv) {
+	if(argc != 6) {
 		cout << "usage: [graph_file] [grammar_file] [num_partitions] [memory_budget] [num_threads]"	<< endl;
 		exit(0);		
 	}
-	else
-	{
+	else {
+		// TODO: check input
 		strcpy(graphFile,argv[1]);
 		strcpy(grammarFile,argv[2]);
 		numPartitions = atoi(argv[3]);
@@ -23,22 +21,6 @@ Context::Context(int argc, char **argv)
 	}
 }
 
-char* Context::getGraphFile() {
-	return graphFile;
-}
-
-char* Context::getGrammarFile() {
-	return grammarFile;	
-}
-
-int Context::getNumPartitions() {
-	return numPartitions;	
-}
-
-unsigned long long int Context::getMemBudget() {
-	return memBudget;
-}
-
-int Context::getNumThreads() {
-	return numThreads;	
+void Context::clear() {
+	vit.clear();	
 }

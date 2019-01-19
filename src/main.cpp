@@ -9,7 +9,7 @@ using std::endl;
 int main(int argc,char **argv)
 {		
 	Context c(argc,argv);
-	
+
 	clock_t start_t,end_t;
 	
 	cout << "===========PREPROCESS BEGIN==========" << endl;
@@ -27,5 +27,7 @@ int main(int argc,char **argv)
 	cout << "compute time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl;
 	cout << "===========COMPUTE END===============" << endl;
 	
+	c.clear();
+
 	return 0;
 }

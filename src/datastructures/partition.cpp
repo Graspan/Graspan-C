@@ -12,11 +12,39 @@ Partition::Partition(partitionid_t id) {
 	numVertices = numEdges = 0;
 }
 
+void Partition::clear() {
+	if(id != -1 && numVertices && numEdges) {	
+		if(vertices) 	
+			delete[] vertices;
+		if(labels)
+			delete[] labels;
+		if(addr)
+			delete[] addr;
+		if(index)
+			delete[] index;
+		vertices = NULL; labels = NULL; addr = NULL; index = NULL;
+		id = -1; numVertices = numEdges = 0;
+	}	
+}
+
 Partition::~Partition() {
-	delete[] vertices;
-	delete[] labels;
-	delete[] addr;
-	delete[] index;
+}
+
+bool Partition::checkduple() {
+	for(int i = 0;i < numVertices;++i) {
+		if(index[i] > 1) {
+			vertexid_t cur_v = vertices[addr[i]];
+			char cur_l = labels[addr[i]];
+			for(int j = 1;j < index[i];++j) {
+				if(vertices[addr[i]+j] == cur_v && labels[addr[i]+j] == cur_l) {
+					return true;			
+				}	
+				cur_v = vertices[addr[i]+j];
+				cur_l = labels[addr[i]+j];
+			}
+		}			
+	}	
+	return false;	
 }
 
 void Partition::loadFromFile(partitionid_t id,Context &c) {

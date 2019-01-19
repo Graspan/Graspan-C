@@ -98,6 +98,9 @@ void Preproc::savePartitions(Context &c) {
 	int numErules = c.grammar.getNumErules();	
 	int size = totalNumEdges + (maxVid+1) * numErules;
 	
+	/* using 1D array instead of 2D array
+	 * faster and smaller(RAM)
+	 */
 	int *addr = new int[(maxVid+1)];
 	int address = 0;
 	for(int i = 0;i <= maxVid;++i) {

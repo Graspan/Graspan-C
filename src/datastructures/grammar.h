@@ -12,13 +12,17 @@ class Grammar {
 
 	public:
 		Grammar();
-		bool loadGrammar(char *filename);
+		// getters and setters
 		int addRawLabel(char *label);
 		char getLabelValue(char *str);
-
 		int getNumErules();
+
+		inline char checkRules(char edgeVal) {return rules[changeShort((char)127,edgeVal)+32768];} // find s-rule edges
+		inline char checkRules(char srcVal,char dstVal) {return rules[changeShort(srcVal,dstVal)+32768];} // find d-rule edges;
+			
 		void myTrim(char *src);
-		inline short changeShort(char a,char b);
+		bool loadGrammar(char *filename);	// load grammar from file
+		inline short changeShort(char a,char b) {return (short)a << 8 | ((short)b & 0xFF);}
 		void test();
 };
 

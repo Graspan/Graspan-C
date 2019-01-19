@@ -4,14 +4,6 @@
 #include "../context.h"
 #include "../datastructures/vit.h"
 
-/*
-typedef struct graphFile {
-	vertexid_t src;
-	vertexid_t dst;
-	char rawLabel[GRAMMAR_STR_LEN];
-}Graph;
-*/
-// typedef int vertexid_t 
 class Preproc {
 	private:
 		vertexid_t totalNumEdges;

@@ -21,11 +21,14 @@ Vit::Vit() {
 	p = (VitNode*)calloc(capacity,sizeof(VitNode));
 }
 
-Vit::~Vit() {
+void Vit::clear() {
 	if(p) {
 		free(p);
 		p = NULL;
 	}	
+}
+
+Vit::~Vit() {
 }
 
 void Vit::setDegree(int vitId,int numEdges) {
