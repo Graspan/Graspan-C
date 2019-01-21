@@ -21,10 +21,10 @@ class Context
 		void clear();
 
 		inline char *getGraphFile() {return graphFile;}
-		char *getGrammarFile() {return grammarFile;}
-		int getNumPartitions() {return numPartitions;}
-		unsigned long long int getMemBudget() {return memBudget;}
-		int getNumThreads() {return numThreads;}
+		inline char *getGrammarFile() {return grammarFile;}
+		inline int getNumPartitions() {return numPartitions;}
+		inline unsigned long long int getMemBudget() {return memBudget;}
+		inline int getNumThreads() {return numThreads;}
 };
 
 

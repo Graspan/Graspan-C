@@ -24,7 +24,7 @@ class ComputationSet {
 	private:		
 		EdgeArray *Olds;	// Ov
 		EdgeArray *Deltas;	// Dv
-		EdgeArray *Alls;	// Ov + Dv
+		EdgeArray *News;
 
 		vertexid_t size;	// numVertices(p) + numVertices(q)
 		vertexid_t psize;	// numVertices(p)
@@ -40,23 +40,36 @@ class ComputationSet {
 		inline vertexid_t getSize() {return size;}
 		inline bool oldEmpty(vertexid_t index) {return Olds[index].isEmpty();}
 		inline bool deltaEmpty(vertexid_t index) {return Deltas[index].isEmpty();}
-		inline bool allsEmpty(vertexid_t index) {return Alls[index].isEmpty();}
-		
+		inline bool newEmpty(vertexid_t index) {return News[index].isEmpty();}
+
 		inline vertexid_t getOldsNumEdges(vertexid_t index) {return Olds[index].getSize();}
 		inline vertexid_t getDeltasNumEdges(vertexid_t index) {return Deltas[index].getSize();}
-		inline vertexid_t getAllsNumEdges(vertexid_t index) {return Alls[index].getSize();}
+		inline vertexid_t getNewsNumEdges(vertexid_t index) {return News[index].getSize();}
 
 		inline char* getOldsLabels(vertexid_t index) {return Olds[index].getLabels();}
 		inline char* getDeltasLabels(vertexid_t index) {return Deltas[index].getLabels();}
-		inline char* getAllsLabels(vertexid_t index) {return Alls[index].getLabels();}
+		inline char* getNewsLabels(vertexid_t index) {return News[index].getLabels();}
 
 		inline vertexid_t* getOldsEdges(vertexid_t index) {return Olds[index].getEdges();}
 		inline vertexid_t* getDeltasEdges(vertexid_t index) {return Deltas[index].getEdges();}
-		inline vertexid_t* getAllsEdges(vertexid_t index) {return Alls[index].getEdges();}
+		inline vertexid_t* getNewsEdges(vertexid_t index) {return News[index].getEdges();}
+	
+		long getOldsTotalNumEdges();
+		long getDeltasTotalNumEdges();
+		long getNewsTotalNumEdges();
 
-		void init(Partition &p,Partition &q,Context &c);
+		void setOlds(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);
+		void setDeltas(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);
+		void setNews(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);
+
+		void clearOlds(vertexid_t index);
+		void clearDeltas(vertexid_t index);
+		void clearNews(vertexid_t index);
 		
-		vertexid_t getIndexInCompSet(vertexid_t vid); 
+		void init(Partition &p,Partition &q,Context &c);
+		vertexid_t getIndexInCompSet(vertexid_t vid);
+
+		void print();
 };		
 }
 #endif

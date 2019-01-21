@@ -16,7 +16,7 @@ private:
 public:		
 	Partition();
 	Partition(partitionid_t id);
-	~Partition();
+	void clear();
 
 	// getters and setters
 	inline partitionid_t getId() {return id;}
@@ -25,8 +25,7 @@ public:
 	inline vertexid_t* getEdgesFirstAddr(vertexid_t id) {return vertices + addr[id];}
 	inline char* getLabelsFirstAddr(vertexid_t id) {return labels + addr[id];}
 
-	void clear();
-	bool checkduple();
+	bool check();
 	void loadFromFile(partitionid_t id,Context &c);
 	void writeToFile();
 	void print(Context &c);

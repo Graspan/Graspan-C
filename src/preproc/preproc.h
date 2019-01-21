@@ -3,6 +3,7 @@
 #include "../common.h"
 #include "../context.h"
 #include "../datastructures/vit.h"
+#include "../datastructures/grammar.h"
 
 class Preproc {
 	private:
@@ -14,16 +15,15 @@ class Preproc {
 	public:
 		Preproc();
 		~Preproc();
+
+		inline vertexid_t getTotalDuplicateEdges() {return totalDuplicateEdges;}
+		inline long getAddedEdgesNum(Context &c) {return (maxVid+1) * c.grammar.getNumErules();}
+
 		void loadGrammar(Context &c);
 		void setNumEdges(Context &c);
 		void setVIT(Context &c);
 		void savePartitions(Context &c);
 		void test(Context &c);
 };
-
-void quickSort3Way(vertexid_t *A,char *B,int l,int r);
-void insertSort(vertexid_t *A,char *B,int l,int r);
-int getPivot(vertexid_t *A,char *B,int l,int r);
-
 
 #endif

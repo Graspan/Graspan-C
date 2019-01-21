@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #include "partition.h"
+#include "../algorithm/myalgorithm.h"
 
 Partition::Partition() {
 	id = -1;
@@ -14,35 +15,20 @@ Partition::Partition(partitionid_t id) {
 
 void Partition::clear() {
 	if(id != -1 && numVertices && numEdges) {	
-		if(vertices) 	
-			delete[] vertices;
-		if(labels)
-			delete[] labels;
-		if(addr)
-			delete[] addr;
-		if(index)
-			delete[] index;
+		if(vertices) delete[] vertices;
+		if(labels) delete[] labels;
+		if(addr) delete[] addr;
+		if(index) delete[] index;
 		vertices = NULL; labels = NULL; addr = NULL; index = NULL;
 		id = -1; numVertices = numEdges = 0;
 	}	
 }
 
-Partition::~Partition() {
-}
-
-bool Partition::checkduple() {
+bool Partition::check() {
+	int curIndex = 0;	
 	for(int i = 0;i < numVertices;++i) {
-		if(index[i] > 1) {
-			vertexid_t cur_v = vertices[addr[i]];
-			char cur_l = labels[addr[i]];
-			for(int j = 1;j < index[i];++j) {
-				if(vertices[addr[i]+j] == cur_v && labels[addr[i]+j] == cur_l) {
-					return true;			
-				}	
-				cur_v = vertices[addr[i]+j];
-				cur_l = labels[addr[i]+j];
-			}
-		}			
+		if(myalgo::checkEdges(index[i],vertices + addr[i],labels + addr[i]))
+			return true;	
 	}	
 	return false;	
 }
@@ -68,8 +54,7 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	addr = new vertexid_t[numVertices];
 	index = new vertexid_t[numVertices];
 	for(int i = 0;i < numVertices;++i) {
-		addr[i]  = 0;
-		index[i] = 0;
+		addr[i] = index[i] = 0;
 	}
 	int cur_addr = 0;
 

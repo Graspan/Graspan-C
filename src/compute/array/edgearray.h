@@ -4,15 +4,15 @@
 
 namespace myarray {
 
-class EdgeArray {
+class EdgeArray {		
 	private:		
 		vertexid_t *edges;
 		char *labels;
 		int size;
+
 	public:
 		EdgeArray();
 		EdgeArray(int size,vertexid_t *edges,char *labels);
-		~EdgeArray();
 		void clear();
 
 		// getters and setters
@@ -20,10 +20,12 @@ class EdgeArray {
 		inline vertexid_t *getEdges() {return edges;}
 		inline char* getLabels() {return labels;}
 		inline int getSize() {return size;}
+	
+		//void reset(int newSize);	// alloc and init
+		void set(int size,vertexid_t *edges,char *labels);
 
 		void print();
 };		
 }
-
 
 #endif

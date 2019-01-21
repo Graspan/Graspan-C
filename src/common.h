@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <iostream>
+#include <string.h>
 
 using std::cout;
 using std::endl;

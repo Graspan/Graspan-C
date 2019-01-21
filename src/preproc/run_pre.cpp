@@ -1,9 +1,6 @@
 #include "run_pre.h"
 #include "preproc.h"
 #include "time.h"
-#include <iostream>
-using std::cout;
-using std::endl;
 
 void preprocess(Context &c) {
 	//clock_t start_t,end_t;

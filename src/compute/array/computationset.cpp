@@ -20,13 +20,23 @@ void ComputationSet::clear() {
 			delete[] Deltas;
 			Deltas = NULL;
 		}
-		if(Alls) {
+		if(News) {
 			for(int i = 0;i < size;++i)
-				Alls[i].clear();
-			delete[] Alls;
-			Alls = NULL;
+				News[i].clear();
+			delete[] News;
+			News = NULL;
 		}
 		size = 0;
+	}	
+}
+
+void ComputationSet::print() {
+	for(int i = 0;i < size;++i) {
+	cout << "Old " << i;
+	Olds[i].print();
+	cout << "Deltas: " << i;
+	Deltas[i].print();
+	//	News[i].print();
 	}	
 }
 
@@ -37,7 +47,7 @@ void ComputationSet::init(Partition &p,Partition &q,Context &c) {
 	size = psize + qsize;
 	Olds = new EdgeArray[size];
 	Deltas = new EdgeArray[size];
-	Alls = new EdgeArray[size];
+	News = new EdgeArray[size];
 
 	/* Combine the vertices of p and q into V
 	 * Combine the edge lists of p and q into E
@@ -47,38 +57,48 @@ void ComputationSet::init(Partition &p,Partition &q,Context &c) {
 	 */
 	for(int i = 0;i < psize;++i) {
 		Olds[i] = EdgeArray();
+		News[i] = EdgeArray();
 		if(p.getlndex(i)) {
 			Deltas[i] = EdgeArray(p.getlndex(i),p.getEdgesFirstAddr(i),p.getLabelsFirstAddr(i));		
-			Alls[i] = EdgeArray(p.getlndex(i),p.getEdgesFirstAddr(i),p.getLabelsFirstAddr(i));
 		}
 		else {
 			Deltas[i] = EdgeArray();	
-			Alls[i] = EdgeArray();
 		}
 	}
 
 	for(int i = 0;i < qsize;++i) {
 	 	Olds[psize + i] = EdgeArray();
+		News[psize + i] = EdgeArray();
 		if(q.getlndex(i)) {
 			Deltas[psize + i] = EdgeArray(q.getlndex(i),q.getEdgesFirstAddr(i),q.getLabelsFirstAddr(i));	
-			Alls[psize + i] = EdgeArray(q.getlndex(i),q.getEdgesFirstAddr(i),q.getLabelsFirstAddr(i));	
 		}
 		else {
 			Deltas[psize + i] = EdgeArray();	
-			Alls[psize + i] = EdgeArray();	
 		}
 	}
 	
-	interval.pFirstVid = c.vit.getStart(p.getId()); interval.pLastVid = interval.pFirstVid + psize + 1;
-	interval.qFirstVid = c.vit.getStart(q.getId()); interval.qLastVid = interval.qFirstVid + qsize + 1;
+	interval.pFirstVid = c.vit.getStart(p.getId()); interval.pLastVid = interval.pFirstVid + psize - 1;
+	interval.qFirstVid = c.vit.getStart(q.getId()); interval.qLastVid = interval.qFirstVid + qsize - 1;
 	interval.pFirstIndex = 0; interval.pLastIndex = psize - 1;
 	interval.qFirstIndex = psize; interval.qLastIndex = size - 1;
+
+	/*
+	cout << "pFirstVid: " << interval.pFirstVid << endl;
+	cout << "pLastVid: " << interval.pLastVid << endl;
+	cout << "pFirstIndex: " << interval.pFirstIndex << endl;
+	cout << "pLastIndex: " << interval.pLastIndex << endl;
+
+	cout << "qFirstVid: " << interval.qFirstVid << endl;
+	cout << "qLastVid: " << interval.qLastVid << endl;
+	cout << "qFirstIndex: " << interval.qFirstIndex << endl;
+	cout << "qLastIndex: " << interval.qLastIndex << endl;
+	*/
 
 	/*
 	for(int i = 0;i < size;++i) {
 		Olds[i].print();
 		Deltas[i].print();
-		Alls[i].print();
+		News[i].print();
 	}
 	*/
 }
@@ -95,4 +115,51 @@ vertexid_t ComputationSet::getIndexInCompSet(vertexid_t vid) {
 	}
 }
 
+long ComputationSet::getOldsTotalNumEdges() {
+	long num = 0;
+	for(int i = 0;i < size;++i)
+		num += getOldsNumEdges(i);
+	return num;
 }
+
+long ComputationSet::getDeltasTotalNumEdges() {
+	long num = 0;
+	for(int i = 0;i < size;++i)
+		num += getDeltasNumEdges(i);		
+	return num;
+}
+
+long ComputationSet::getNewsTotalNumEdges() {
+	long num = 0;
+	for(int i = 0;i < size;++i)
+		num += getNewsNumEdges(i);
+	return num;
+}
+
+void ComputationSet::setOlds(vertexid_t index,int numEdges,vertexid_t *edges,char *labels) {
+	Olds[index].set(numEdges,edges,labels);
+}
+
+void ComputationSet::setDeltas(vertexid_t index,int numEdges,vertexid_t *edges,char *labels) {
+	Deltas[index].set(numEdges,edges,labels);	
+}
+
+void ComputationSet::setNews(vertexid_t index,int numEdges,vertexid_t *edges,char *labels) {
+	News[index].set(numEdges,edges,labels);
+}
+
+void ComputationSet::clearOlds(vertexid_t index) {
+	Olds[index].clear();	
+}
+
+void ComputationSet::clearDeltas(vertexid_t index) {
+	Deltas[index].clear();	
+}
+
+void ComputationSet::clearNews(vertexid_t index) {
+	News[index].clear();	
+}
+
+}
+
+

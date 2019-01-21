@@ -1,8 +1,5 @@
 #include "vit.h"
 #include <stdlib.h>
-#include <iostream>
-using std::cout;
-using std::endl;
 
 Vit::Vit(int size,vertexid_t *start,vertexid_t *end,int *degrees) {
 	this->size = size;
@@ -26,9 +23,6 @@ void Vit::clear() {
 		free(p);
 		p = NULL;
 	}	
-}
-
-Vit::~Vit() {
 }
 
 void Vit::setDegree(int vitId,int numEdges) {

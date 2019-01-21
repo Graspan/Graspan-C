@@ -16,15 +16,14 @@ int main(int argc,char **argv)
 	start_t = clock();
 	preprocess(c);
 	end_t = clock();
-	cout << "preprocess time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl;
+	cout << "PREPROCESS TIME: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl;
 	cout << "===========PREPROCESS END============" << endl;
 
-	
 	cout << "===========COMPUTE BEGIN=============" << endl;
 	start_t = clock();
-	cout << run_computation(c) << endl;
+	cout << "NEW EDGES TOTAL: " << run_computation(c) << endl;
 	end_t = clock();
-	cout << "compute time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl;
+	cout << "COMPUTE TIME: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl;
 	cout << "===========COMPUTE END===============" << endl;
 	
 	c.clear();

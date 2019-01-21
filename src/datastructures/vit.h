@@ -17,7 +17,6 @@ class Vit {
 	public:
 		Vit();
 		Vit(int size,vertexid_t *start,vertexid_t *end,int *degrees);
-		~Vit();
 		void clear();
 
 		// getter and setter

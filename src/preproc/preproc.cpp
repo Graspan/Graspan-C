@@ -1,12 +1,9 @@
-#include "preproc.h"
-#include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <string.h>
-#include <stdio.h>
 
-using std::cout;
-using std::endl;
+#include "preproc.h"
+#include "../algorithm/myalgorithm.h"
 
 Preproc::Preproc() {
 	totalNumEdges = maxVid = totalDuplicateEdges = 0;	
@@ -88,9 +85,9 @@ void Preproc::setVIT(Context &c) {
 			}
 		}	
 	}
-	cout << "numVertex: " << maxVid+1 << endl;
-	cout << "numEdges: " << total_size << endl;
-	c.vit.print();
+	cout << "NumVertex: " << maxVid+1 << endl;
+	cout << "NumEdges: " << total_size << endl;
+	//c.vit.print();
 }
 
 void Preproc::savePartitions(Context &c) {
@@ -136,7 +133,7 @@ void Preproc::savePartitions(Context &c) {
 
 	// sort edges of each vertex
 	for(int i = 0;i <= maxVid;++i)
-		quickSort3Way(vertices + addr[i],labels + addr[i],0,index[i]-1);
+		myalgo::quickSort(vertices + addr[i],labels + addr[i],0,index[i]-1);	
 	
 	/* remove duplicate edges of each vertex
 	 * save partitions To file (binary format)
@@ -152,33 +149,24 @@ void Preproc::savePartitions(Context &c) {
 		FILE *f = fopen(filename,"wb");
 		for(vertexid_t j = v_start; j <= v_end;++j) {
 			int edgeNum = numEdges[j] + numErules;
-			if(!numEdges[j])
+			if(!edgeNum)
 				continue;
+			
 			//remove duplicate edges
 			vertexid_t *edge_v = new vertexid_t[edgeNum];
 			char *edge_l = new char[edgeNum];
-			*edge_v = vertices[addr[j]]; *edge_l = labels[addr[j]];
 			int len = 1;
-			for(int k = 1;k < edgeNum;++k) {
-				if(vertices[addr[j] + k] == vertices[addr[j] + k-1] && labels[addr[j] + k] == labels[addr[j] + k-1]) {
-					continue;
-				}
-				else {
-					edge_v[len] = vertices[addr[j] + k];
-					edge_l[len] = labels[addr[j] + k];
-					++len;
-				}
-			}
+			myalgo::removeDuple(len,edge_v,edge_l,edgeNum,vertices + addr[j],labels + addr[j]);
 			dupleNum += (edgeNum - len);
-			//save partitions to binary file
 			
+			//save partitions to binary file
 			fwrite((const void*)& j,sizeof(vertexid_t),1,f);
 			fwrite((const void*)& len,sizeof(vertexid_t),1,f);
 			for(int k = 0;k < len;++k) {
 				fwrite((const void*)& edge_v[k],sizeof(vertexid_t),1,f);
 				fwrite((const void*)& edge_l[k],sizeof(char),1,f);
 			}
-			delete[] edge_v;
+			delete[] edge_v; 
 			delete[] edge_l;
 		}
 		fclose(f);	
@@ -188,95 +176,14 @@ void Preproc::savePartitions(Context &c) {
 		}	
 	}
 	
-	cout << "totalDuplicateEdges: " << totalDuplicateEdges << endl;
+	cout << "DUPLE EDGES: " << totalDuplicateEdges << endl;
 
 	delete[] addr;
 	delete[] index;
 	delete[] vertices;
 	delete[] labels;
-}
 
-void insertSort(vertexid_t *A,char *B,int l,int r) {
-	for(int j = l+1;j <= r;++j) {
-		vertexid_t key_v = A[j];
-		char key_c = B[j];
-		int i = j-1;
-		while(i >= l && key_v < A[i]) {
-			A[i+1] = A[i];
-			B[i+1] = B[i];
-			--i;
-		}
-		A[i+1] = key_v;
-		B[i+1] = key_c;
-	}
-}
-
-void quickSort3Way(vertexid_t *A,char* B,int l,int r) {
-
-	if(l >= r)
-		return;	
-	if(r - l + 1 <= 0)	
-		insertSort(A,B,l,r);
-	else {
-		int pivot = getPivot(A,B,l,r);
-		int p,q,i,j;
-		i = p = l;
-		j = q = r-1;
-
-		while(1) {
-			while(i < r && A[i] <= pivot) {
-				if(A[i] == pivot) {
-					std::swap(A[i],A[p]);
-					std::swap(B[i],B[p]);
-					++p;
-				}
-				++i;
-			}
-			while(l <= j && A[j] >= pivot) {
-				if(A[j] == pivot) {
-					std::swap(A[j],A[q]);
-					std::swap(B[j],B[q]);
-					--q;
-				}	
-				--j;
-			}
-			if(i >= j)
-				break;
-			std::swap(A[i],A[j]);
-			std::swap(B[i],B[j]);
-			++i;--j;
-		}
-		--i; --p;
-		while(p >= l) {
-			std::swap(A[i],A[p]);
-			std::swap(B[i],B[p]);
-			--i; --p;
-		}
-		++j; ++q;
-		while(q <= r) {
-			std::swap(A[j],A[q]);
-			std::swap(B[j],B[q]);
-			++j;++q;
-		}
-
-		quickSort3Way(A,B,l,i);
-		quickSort3Way(A,B,j,r);
-	}	
-}
-
-int getPivot(vertexid_t *A,char *B,int l,int r) {
-	int mid = (l + r) / 2; int k = l;
-	if(A[mid] < A[k]) k = mid;
-	if(A[r] < A[k]) k = r;
-	if(k != l) {
-		std::swap(A[k],A[l]);
-		std::swap(B[k],B[l]);
-	}
-	if(mid != r && A[mid] < A[r]) {
-		std::swap(A[mid],A[r]);
-		std::swap(B[mid],B[r]);
-	}
-	return A[r];
+	//cout << "PROC ADDED EDGES: " << getAddedEdgesNum(c) << endl;
 }
 
 void Preproc::test(Context &c) {
