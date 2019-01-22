@@ -33,6 +33,28 @@ bool Partition::check() {
 	return false;	
 }
 
+void Partition::writeToFile(partitionid_t id,Context &c) {
+	char filename[256];
+	sprintf(filename,"%d.part",id);
+	FILE *f = fopen(filename,"wb");
+	vertexid_t v_start,v_end;
+	v_start = c.vit.getStart(id);
+	v_end = c.vit.getEnd(id);
+
+	for(vertexid_t i = v_start;i <= v_end;++i) {
+		int pos = i-v_start;	
+		if(index[pos] == 0)
+			continue;
+		fwrite((const void*)& i,sizeof(vertexid_t),1,f);
+		fwrite((const void*)& index[pos],sizeof(vertexid_t),1,f);
+		for(int j = 0;j < index[pos];++j) {
+			fwrite((const void*)& vertices[addr[pos] + j],sizeof(vertexid_t),1,f);
+			fwrite((const void*)& labels[addr[pos] + j],sizeof(char),1,f);
+		}
+	}
+	fclose(f);
+}
+
 void Partition::loadFromFile(partitionid_t id,Context &c) {
 	char fname[256];
 	sprintf(fname,"%d.part",id);
@@ -77,6 +99,18 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 		cur_addr += degree;
 	}
 	fclose(fp);
+}
+
+void Partition::update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *vertices,char *labels,vertexid_t *addr,vertexid_t *index) {
+	partitionid_t newId = this->id;
+	this->clear();
+	this->id = newId; this->numEdges = numEdges; this->numVertices = numVertices;
+	this->vertices = new vertexid_t[numEdges]; this->labels = new char[numEdges];
+	this->addr = new vertexid_t[numVertices]; this->index = new vertexid_t[numVertices];
+	memcpy(this->vertices,vertices,sizeof(vertexid_t) * numEdges);
+	memcpy(this->labels,labels,sizeof(char) * numEdges);
+	memcpy(this->addr,addr,sizeof(vertexid_t) * numVertices);
+	memcpy(this->index,index,sizeof(vertexid_t) * numVertices);
 }
 
 void Partition::print(Context &c) {

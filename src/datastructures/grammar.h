@@ -6,7 +6,9 @@ class Grammar {
 	private:
 		char rawLabel[256][GRAMMAR_STR_LEN];	// rawLabel[0]~rawLabel[255] -> (char)-128 ~ (char)127
 		int numRawLabels;
-		bool erules[256];	// e-rule
+
+		char erules[256];	// e-rule
+		int numErules;
 		char rules[65536];	// s-rule && d-rule
 							// rules[0]~rules[65535] -> (short)-32768 ~ (short)32767
 
@@ -15,7 +17,9 @@ class Grammar {
 		// getters and setters
 		int addRawLabel(char *label);
 		char getLabelValue(char *str);
-		int getNumErules();
+		
+		inline int getNumErules() {return numErules;}
+		inline char getErule(int index) {return erules[index];}
 
 		inline char checkRules(char edgeVal) {return rules[changeShort((char)127,edgeVal)+32768];} // find s-rule edges
 		inline char checkRules(char srcVal,char dstVal) {return rules[changeShort(srcVal,dstVal)+32768];} // find d-rule edges;

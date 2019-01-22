@@ -8,42 +8,60 @@
 namespace myarray {
 
 Compute::Compute() {
-	newTotalEdges = 0;		
+	newTotalEdges = 0;	
+	isNewp = isNewq = false;
 }
 
 bool Compute::scheduler(partitionid_t &p,partitionid_t &q,Context &c) {
-	p = 0; q = 1;
-	return true;
+	return c.ddm.scheduler(p,q);
+}
+
+void Compute::adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,Context &c) {
+	c.ddm.adjust(p,isNewp,q,isNewq);	
 }
 
 long Compute::startCompute(Context &c)  {
 	
 	// TODO: scheduler 
-	partitionid_t pid,qid;	
-	scheduler(pid,qid,c);
-	Partition p;
-	p.loadFromFile(pid,c);
-	Partition q;
-	q.loadFromFile(qid,c);
-	// p.print(c); q.print(c);
+	partitionid_t pid,qid;
 
-	// check partitions
-	if(p.check() || q.check()) {
-		cout << "partition duplication happened!" << endl;
-		exit(-1);
+	int roundId = 0;
+	while(scheduler(pid,qid,c)) {
+		Partition p;
+		p.loadFromFile(pid,c);
+		Partition q;
+		q.loadFromFile(qid,c);
+
+		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
+		cout << "P = " << pid << " , Q = " << qid << endl;  
+
+		// check partitions
+		if(p.check() || q.check()) {
+			cout << "partition duplication happened!" << endl;
+			exit(-1);
+		}
+
+		// init compset
+		ComputationSet compset;
+		initComputationSet(compset,p,q,c);
+
+		// compute 
+		newTotalEdges += computeOneRound(compset,c);
+		
+		// update Partitions
+		updatePartitions(compset,p,q,c);
+		adjustDDM(pid,isNewp,qid,isNewq,c);
+		
+		// write Partitions to File
+		p.writeToFile(pid,c);
+		q.writeToFile(qid,c);
+
+		// return resources
+		p.clear();
+		q.clear();
+		compset.clear();
 	}
 
-	// init compset
-	ComputationSet compset;
-	initComputationSet(compset,p,q,c);
-
-	// compute 
-	newTotalEdges += computeOneRound(compset,c);
-
-	// return resources
-	p.clear();
-	q.clear();
-	compset.clear();
 	return newTotalEdges;	
 }
 
@@ -61,6 +79,7 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c) {
 		postProcessOneIteration(compset);
 		long realIterEdges = compset.getDeltasTotalNumEdges();
 		thisRoundEdges += realIterEdges;
+	
 		/*
 		cout << "===== STARTING ITERATION " << iterId++ << "=====" << endl;
 		cout << "EDGES THIS ITER: " << realIterEdges << endl;
@@ -69,7 +88,6 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c) {
 		if(realIterEdges == 0)
 			break;	
 	}
-	//compset.print();
 	return thisRoundEdges;	
 }
 
@@ -262,4 +280,70 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,A
 	}
 }
 
+void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q,Context &c) {
+	// TODO: refactor this method.
+	vertexid_t psize = compset.getPsize();	
+	vertexid_t numEdges,numVertices;
+	vertexid_t *edges; char *labels;
+	vertexid_t *addr; vertexid_t *index;
+
+	// update p
+	
+	numVertices = psize;
+	numEdges = compset.getPNumEdges();
+	isNewp = false;
+	if(numEdges > c.vit.getDegree(p.getId())) {
+		isNewp = true;	
+		edges = new vertexid_t[numEdges];
+		labels = new char[numEdges];
+		addr = new vertexid_t[numVertices];	
+		index = new vertexid_t[numVertices];
+		for(int i = 0;i < numVertices;++i)
+			index[i] = 0;
+
+		vertexid_t cur_addr = 0;
+		for(vertexid_t i = 0;i < numVertices;++i) {
+			addr[i] = cur_addr;
+			index[i] = compset.getOldsNumEdges(i);
+			if(index[i]) {
+				memcpy(edges + addr[i],compset.getOldsEdges(i),sizeof(vertexid_t) * index[i]);
+				memcpy(labels + addr[i],compset.getOldsLabels(i),sizeof(char) * index[i]);
+			}
+			cur_addr += index[i];
+		}
+		p.update(numVertices,numEdges,edges,labels,addr,index);
+		delete[] edges; delete[] labels; delete[] addr; delete[] index;
+		c.vit.setDegree(p.getId(),numEdges);
+	}
+	
+	// update q
+	isNewq = false;
+	numVertices = compset.getQsize();
+	numEdges = compset.getQNumEdges();
+	if(numEdges > c.vit.getDegree(q.getId())) {
+		isNewq = true;	
+		edges = new vertexid_t[numEdges];
+		labels = new char[numEdges];
+		addr = new vertexid_t[numVertices];
+		index = new vertexid_t[numVertices];
+		for(int i = 0;i < numVertices;++i)
+			index[i] = 0;
+
+		vertexid_t cur_addr = 0;
+		for(vertexid_t i = 0;i < numVertices;++i) {
+			addr[i] = cur_addr;
+			index[i] = compset.getOldsNumEdges(i + psize);
+			if(index[i]) {
+				memcpy(edges + addr[i],compset.getOldsEdges(i + psize),sizeof(vertexid_t) * index[i]);
+				memcpy(labels + addr[i],compset.getOldsLabels(i + psize),sizeof(char) * index[i]);
+			}
+				cur_addr += index[i];
+		}
+		q.update(numVertices,numEdges,edges,labels,addr,index);
+		delete[] edges; delete[] labels; delete[] addr; delete[] index;
+		c.vit.setDegree(q.getId(),numEdges);
+	}
 }
+
+}
+

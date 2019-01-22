@@ -27,6 +27,9 @@ public:
 
 	bool check();
 	void loadFromFile(partitionid_t id,Context &c);
+	void writeToFile(partitionid_t id,Context &c);
+	void update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *vertices,char *labels,vertexid_t *addr,vertexid_t *index);
+
 	void writeToFile();
 	void print(Context &c);
 };

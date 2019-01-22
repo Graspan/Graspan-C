@@ -63,6 +63,7 @@ void Preproc::setVIT(Context &c) {
 	setNumEdges(c);	
 	int numErules = c.grammar.getNumErules();
 	int numPartitions = c.getNumPartitions();
+	
 	int total_size = totalNumEdges + (maxVid+1) * numErules;
 	int partition_size = (total_size) / numPartitions;
 
@@ -85,8 +86,12 @@ void Preproc::setVIT(Context &c) {
 			}
 		}	
 	}
+	
+
 	cout << "NumVertex: " << maxVid+1 << endl;
 	cout << "NumEdges: " << total_size << endl;
+	
+	c.ddm.setNumPartitions(numPartitions);
 	//c.vit.print();
 }
 
@@ -126,7 +131,7 @@ void Preproc::savePartitions(Context &c) {
 	for(int i = 0;i <= maxVid;++i) {
 		for(int j = 0;j < numErules;++j) {
 			vertices[addr[i] + index[i]] = i;
-			labels[addr[i] + index[i]] = (char)(j-128);
+			labels[addr[i] + index[i]] = c.grammar.getErule(j);
 			++index[i];
 		}	
 	}
@@ -183,7 +188,7 @@ void Preproc::savePartitions(Context &c) {
 	delete[] vertices;
 	delete[] labels;
 
-	//cout << "PROC ADDED EDGES: " << getAddedEdgesNum(c) << endl;
+	cout << "ADD ERULE EDGES: " << getAddedEdgesNum(c) << endl;
 }
 
 void Preproc::test(Context &c) {

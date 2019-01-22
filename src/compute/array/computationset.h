@@ -54,9 +54,14 @@ class ComputationSet {
 		inline vertexid_t* getDeltasEdges(vertexid_t index) {return Deltas[index].getEdges();}
 		inline vertexid_t* getNewsEdges(vertexid_t index) {return News[index].getEdges();}
 	
-		long getOldsTotalNumEdges();
-		long getDeltasTotalNumEdges();
-		long getNewsTotalNumEdges();
+		inline vertexid_t getPsize() {return psize; }
+		inline vertexid_t getQsize() {return qsize; }
+		vertexid_t getPNumEdges();
+		vertexid_t getQNumEdges();
+
+		vertexid_t getOldsTotalNumEdges();
+		vertexid_t getDeltasTotalNumEdges();
+		vertexid_t getNewsTotalNumEdges();
 
 		void setOlds(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);
 		void setDeltas(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);

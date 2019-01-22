@@ -3,6 +3,7 @@
 #include "common.h"
 #include "datastructures/grammar.h"
 #include "datastructures/vit.h"
+#include "datastructures/ddm.h"
 
 class Context
 {
@@ -16,6 +17,7 @@ class Context
 	public:
 		Grammar grammar;
 		Vit vit;
+		DDM ddm;
 
 		Context(int argc,char **argv);
 		void clear();

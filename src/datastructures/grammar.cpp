@@ -8,18 +8,9 @@ using std::endl;
 
 Grammar::Grammar() {
 	numRawLabels = 0;
-	for(int i = 0;i < 256;++i)
-		erules[i] = false;
+	numErules = 0;
 	for(int i = 0;i < 65536;++i)
 		rules[i] = (char)127;
-}
-
-int Grammar::getNumErules() {
-	int num = 0;
-	for(int i = 0;i < 256;++i)
-		if(erules[i])
-			++num;
-	return num;
 }
 
 bool Grammar::loadGrammar(char *filename) {
@@ -49,7 +40,7 @@ bool Grammar::loadGrammar(char *filename) {
 		switch(num) 
 		{
 		case 1:    // add e-rule
-			erules[index[0]] = true;	
+			erules[numErules++] = (char)(index[0]-128);	
 			break;	
 		case 2:    // add s-rule
 			{
@@ -99,11 +90,8 @@ void Grammar::test() {
 	cout << endl;
 	
 	cout << "eRules :" << endl;
-	for(int i = 0;i < numRawLabels;++i)
-	{
-		if(erules[i])
-			cout << i-128 << ", ";
-	}
+	for(int i = 0;i < numErules;++i)
+		cout << (int)erules[i] << ",";	
 	cout << endl;
 
 	cout << "s-rules and d-rules: " << endl;

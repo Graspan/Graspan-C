@@ -7,7 +7,7 @@ using std::cout;
 using std::endl;
 
 int main(int argc,char **argv)
-{		
+{	
 	Context c(argc,argv);
 
 	clock_t start_t,end_t;
