@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <time.h>
 #include <unistd.h>
+
 #include "compute.h"
 #include "arraystomerge.h"
 #include "../../algorithm/myalgorithm.h"
@@ -22,10 +23,16 @@ void Compute::adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,
 
 long Compute::startCompute(Context &c)  {
 	
-	// TODO: scheduler 
-	partitionid_t pid,qid;
+	// create threadpool for parallel computing
+	boost::asio::io_service ioServ;
+	boost::thread_group threadPool;
+	boost::asio::io_service::work work(ioServ);
+	for(int i = 0;i < c.getNumThreads();++i) 
+		threadPool.create_thread(boost::bind(&boost::asio::io_service::run,&ioServ));	
 
+	partitionid_t pid,qid;
 	int roundId = 0;
+	// TODO: better schedular algorithm 
 	while(scheduler(pid,qid,c)) {
 		Partition p;
 		p.loadFromFile(pid,c);
@@ -46,7 +53,7 @@ long Compute::startCompute(Context &c)  {
 		initComputationSet(compset,p,q,c);
 
 		// compute 
-		newTotalEdges += computeOneRound(compset,c);
+		newTotalEdges += computeOneRound(compset,c,ioServ);
 		
 		// update Partitions
 		updatePartitions(compset,p,q,c);
@@ -69,35 +76,60 @@ void Compute::initComputationSet(ComputationSet &compset,Partition &p,Partition 
 	compset.init(p,q,c);
 }
 
-long Compute::computeOneRound(ComputationSet &compset,Context &c) {
+long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io_service &ioServ) {
 	// TODO: parallel computing
 	long thisRoundEdges = 0;
+	int numThreads = c.getNumThreads();
+
+	int segsize = compset.getSize() / 64 + 1;
+	int nSegs = compset.getSize() / segsize + 1;
 
 	int iterId = 0;
 	while(1) {
-		long totalIterEdges = computeOneIteration(compset,c);
+		clock_t start_t,end_t;
+		start_t = clock();
+		computeOneIteration(compset,segsize,nSegs,c,ioServ);
 		postProcessOneIteration(compset);
 		long realIterEdges = compset.getDeltasTotalNumEdges();
 		thisRoundEdges += realIterEdges;
-	
-		/*
+		end_t = clock();
 		cout << "===== STARTING ITERATION " << iterId++ << "=====" << endl;
 		cout << "EDGES THIS ITER: " << realIterEdges << endl;
-		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl << endl;	
-		*/
+		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl;	
+		cout << "time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl << endl;
+
 		if(realIterEdges == 0)
 			break;	
 	}
 	return thisRoundEdges;	
 }
 
-long Compute::computeOneIteration(ComputationSet &compset,Context &c) {
-	// TODO: parellel computing
+void Compute::computeOneIteration(ComputationSet &compset,int segsize,int nSegs,Context &c,boost::asio::io_service &ioServ) {
+	int lower,upper;
+	numFinished = 0;
+	compFinished = false; 
+	int compSize = compset.getSize();
+
 	long thisIterEdges = 0;
-	for(int i = 0;i < compset.getSize();++i) {
-		thisIterEdges += computeOneVertex(i,compset,c);		
+	for(int i = 0;i < nSegs;++i) {
+		lower = i * segsize;
+		upper = (lower + segsize < compSize) ? lower + segsize : compSize;
+		ioServ.post(boost::bind(&myarray::Compute::runUpdates,this,lower,upper,nSegs,compset,c));
 	}
-	return thisIterEdges;
+	std::unique_lock<std::mutex> lck(comp_mtx);
+	while (!compFinished) cv.wait(lck);
+}
+
+void Compute::runUpdates(int lower,int upper,int nSegs,ComputationSet &compset,Context &c) {
+	for(int i = lower;i < upper;++i)
+		computeOneVertex(i,compset,c);			
+
+	std::unique_lock<std::mutex> lck(add_edges);
+	++numFinished;
+	if(numFinished == nSegs) {
+		compFinished = true;
+		cv.notify_one();
+	}	
 }
 
 void Compute::postProcessOneIteration(ComputationSet &compset) {

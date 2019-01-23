@@ -80,13 +80,14 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	}
 	int cur_addr = 0;
 
+	size_t freadRes = 0; // clear warnings
 	while(fread(&src,sizeof(vertexid_t),1,fp) != 0) {
-		fread(&degree,sizeof(vertexid_t),1,fp);
+		freadRes = fread(&degree,sizeof(vertexid_t),1,fp);
 		vertexid_t vid = src - v_start;
 		addr[vid] = cur_addr;
 		int bufsize = (sizeof(vertexid_t) + sizeof(char)) * degree;	
 		char *buf = (char*)malloc(bufsize);
-		fread(buf,bufsize,1,fp);
+		freadRes = fread(buf,bufsize,1,fp);
 		// sizeof(vertexid_t) + sizeof(char) = 5
 		for(vertexid_t i = 0;i < bufsize;i += 5) {
 			dst = *((vertexid_t*)(buf + i));
