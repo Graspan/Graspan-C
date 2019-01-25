@@ -25,12 +25,14 @@ public:
 	inline vertexid_t* getEdgesFirstAddr(vertexid_t id) {return vertices + addr[id];}
 	inline char* getLabelsFirstAddr(vertexid_t id) {return labels + addr[id];}
 
+	inline void setId(partitionid_t id) {this->id = id;}
+
 	bool check();
 	void loadFromFile(partitionid_t id,Context &c);
 	void writeToFile(partitionid_t id,Context &c);
 	void update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *vertices,char *labels,vertexid_t *addr,vertexid_t *index);
+	void repart(Partition &p,Context &c);
 
-	void writeToFile();
 	void print(Context &c);
 };
 

@@ -19,7 +19,6 @@ EdgeArray::EdgeArray(int size,vertexid_t *edges,char *labels) {
 }
 
 void EdgeArray::set(int size,vertexid_t *edges,char *labels) {
-
 	if(!size)
 		return;	
 

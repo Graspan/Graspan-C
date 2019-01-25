@@ -8,24 +8,74 @@ ArraysToMerge::ArraysToMerge() {
 }
 
 void ArraysToMerge::mergeAndSort() {
-	if(size)	
-		sort1();
+	//sort1();
+	mergeKArrays();
+}
+
+void ArraysToMerge::mergeKArrays() {
+	if(size) {
+		vertexid_t *newEdges;
+		char *newLabels;
+		// minHeap algorithm to merge k arrays
+		if(arraySize > 1) {
+			newEdges = new vertexid_t[size]; newLabels = new char[size];
+			// initial k-MinHeap
+			MinHeapNode *harr = new MinHeapNode[arraySize];
+			for(int i = 0;i < arraySize;++i) {
+				harr[i].key_v = edges[addr[i]];
+				harr[i].key_c = labels[addr[i]];
+				harr[i].i = i;
+				harr[i].j = 1;
+			}
+			MinHeap hp(harr,arraySize);		
+			for(int i = 0;i < arraySize;++i) {
+				for(int j = 0;j < index[i];++j) {
+					MinHeapNode root = hp.getMin();
+					newEdges[addr[i] + j] = root.key_v;
+					newLabels[addr[i] + j] = root.key_c;
+					if(root.j < index[root.i]) {
+						root.key_v = edges[addr[root.i] + root.j];
+						root.key_c = labels[addr[root.i] + root.j];
+						++root.j;
+					}
+					else 
+						root.key_v = INT_MAX;	
+					hp.replaceMin(root);
+				}	
+			}
+			delete[] harr;
+		}
+		// remove duplicate edges
+		vertexid_t *edge_v = new vertexid_t[size];
+		char *edge_l = new char[size];
+		int len = 0;
+		if(arraySize > 1) {
+				myalgo::removeDuple(len,edge_v,edge_l,size,newEdges,newLabels);
+				delete[] newEdges; delete[] newLabels;
+		}
+		else
+			myalgo::removeDuple(len,edge_v,edge_l,size,edges,labels);
+		memcpy(edges,edge_v,sizeof(vertexid_t) * len);
+		memcpy(labels,edge_l,sizeof(char) * len);
+		numEdges = len;
+		delete[] edge_v; delete[] edge_l;
+	}	
 }
 
 void ArraysToMerge::sort1() {
-	// TODO: better Sort Algorithm
-	myalgo::quickSort(this->edges,this->labels,0,size-1);
-	// remove duplicate edges
-	vertexid_t *edge_v = new vertexid_t[size];
-	char *edge_l = new char[size];
-	int len = 0;
-	myalgo::removeDuple(len,edge_v,edge_l,size,edges,labels);
-
-	memcpy(edges,edge_v,sizeof(vertexid_t)*len);
-	memcpy(labels,edge_l,sizeof(char)*len);
-	numEdges = len;
-	delete[] edge_v;
-	delete[] edge_l;
+	if(size) {
+		if(arraySize > 1)	
+			myalgo::quickSort(this->edges,this->labels,0,size-1);
+		// remove duplicate edges
+		vertexid_t *edge_v = new vertexid_t[size];
+		char *edge_l = new char[size];
+		int len = 0;
+		myalgo::removeDuple(len,edge_v,edge_l,size,edges,labels);
+		memcpy(edges,edge_v,sizeof(vertexid_t)*len);
+		memcpy(labels,edge_l,sizeof(char)*len);
+		numEdges = len;
+		delete[] edge_v; delete[] edge_l;
+	}	
 }
 
 void ArraysToMerge::clear() {
@@ -96,16 +146,6 @@ void ArraysToMerge::addOneEdge(vertexid_t edge,char label) {
 }
 
 void ArraysToMerge::print() {
-	//cout << "number of arraystomerge: " << arraySize << endl;
-	/*
-	for(int i = 0;i < arraySize;++i) {
-		cout << "array " << i << ":";
-		for(int j = 0;j < index[i];++j) {
-			cout << "(" << edges[addr[i] + j] << "," << (int)labels[addr[i] + j] << ") -> ";
-		}
-		cout << "end" << endl;
-	}
-	*/
 	if(numEdges) {
 		for(int i = 0;i < numEdges;++i) {
 			cout << "(" << edges[i] << "," << (int)labels[i] << ") -> "; 	

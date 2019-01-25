@@ -114,6 +114,44 @@ void Partition::update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *ve
 	memcpy(this->index,index,sizeof(vertexid_t) * numVertices);
 }
 
+void Partition::repart(Partition &p,Context &c) {
+	int totalNumEdges = c.vit.getDegree(this->id);
+	int numPartitions = c.getNumPartitions();
+	vertexid_t start = c.vit.getStart(this->id);
+	vertexid_t end = c.vit.getEnd(this->id);
+
+	int curNumEdges = 0;
+	int i;
+	for(i = 0;i < numVertices;++i) {
+		curNumEdges += index[i];
+		if(curNumEdges >= totalNumEdges / 2) {	
+			break;	
+		}
+	}
+	// update p
+	p.setId(numPartitions); 
+	c.setNumPartitions(numPartitions+1);
+	vertexid_t *pAddr = new vertexid_t[numVertices-i-1];
+	for(int j = 0;j < numVertices-1-i;++j) {
+		pAddr[j] = addr[j+i+1]-addr[i+1];	// calculate offset
+	}
+	p.update(numVertices-1-i,totalNumEdges-curNumEdges,vertices+i+1,labels+i+1,pAddr,index+i+1);
+	delete[] pAddr;
+	c.vit.add(start+i+1,end,totalNumEdges-curNumEdges);
+	c.ddm.add();
+	// update self
+	numVertices = i+1; numEdges = curNumEdges;
+	vertexid_t *tmpVertices = new vertexid_t[numEdges];	
+	memcpy(tmpVertices,vertices,sizeof(vertexid_t) * numEdges); delete[] vertices; vertices = tmpVertices;	
+	char *tmpLabels = new char[numEdges];
+	memcpy(tmpLabels,labels,sizeof(char) * numEdges); delete[] labels; labels = tmpLabels;
+	vertexid_t *tmpAddr = new vertexid_t[numVertices];
+	memcpy(tmpAddr,addr,sizeof(vertexid_t) * numVertices); delete[] addr; addr = tmpAddr;
+	vertexid_t *tmpIndex = new vertexid_t[numVertices];
+	memcpy(tmpIndex,index,sizeof(vertexid_t) * numVertices); delete[] index; index = tmpIndex;
+	c.vit.setVitValue(this->id,start,start+i,curNumEdges);
+}
+
 void Partition::print(Context &c) {
 	cout << "========Partition test begin======" << endl;
 	cout << "partition id: " << id << endl;

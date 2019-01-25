@@ -25,10 +25,6 @@ void Vit::clear() {
 	}	
 }
 
-void Vit::setDegree(int vitId,int numEdges) {
-	p[vitId].degree = numEdges;	
-}
-
 void Vit::setVitValue(int vitId,vertexid_t start,vertexid_t end,int numEdges) {
 	if(vitId >= size || vitId < 0)
 		cout << "Invalid vitId!" << endl;

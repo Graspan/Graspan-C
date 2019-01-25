@@ -17,8 +17,8 @@ bool Compute::scheduler(partitionid_t &p,partitionid_t &q,Context &c) {
 	return c.ddm.scheduler(p,q);
 }
 
-void Compute::adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,Context &c) {
-	c.ddm.adjust(p,isNewp,q,isNewq);	
+void Compute::adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished,Context &c) {
+	c.ddm.adjust(p,isNewp,q,isNewq,isFinished);	
 }
 
 long Compute::startCompute(Context &c)  {
@@ -31,44 +31,60 @@ long Compute::startCompute(Context &c)  {
 		threadPool.create_thread(boost::bind(&boost::asio::io_service::run,&ioServ));	
 
 	partitionid_t pid,qid;
+	Partition p,q;
 	int roundId = 0;
 	// TODO: better schedular algorithm 
 	while(scheduler(pid,qid,c)) {
-		Partition p;
 		p.loadFromFile(pid,c);
-		Partition q;
 		q.loadFromFile(qid,c);
 
 		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
 		cout << "P = " << pid << " , Q = " << qid << endl;  
-
 		// check partitions
 		if(p.check() || q.check()) {
 			cout << "partition duplication happened!" << endl;
 			exit(-1);
 		}
-
 		// init compset
 		ComputationSet compset;
 		initComputationSet(compset,p,q,c);
-
-		// compute 
-		newTotalEdges += computeOneRound(compset,c,ioServ);
-		
-		// update Partitions
-		updatePartitions(compset,p,q,c);
-		adjustDDM(pid,isNewp,qid,isNewq,c);
-		
+		// compute one round 
+		bool isFinished = false;
+		newTotalEdges += computeOneRound(compset,c,ioServ,isFinished);
+		// update Partitions and adjust VIT and DDM
+		updatePartitions(compset,p,q,isFinished,c);
+		// repart if out of memory,adjust VIT and DDM
+		bool repartP = false; bool repartQ = false; 
+		Partition p_2,q_2;
+		needRepart(compset,repartP,repartQ,isFinished,c);
+		if(repartP) p.repart(p_2,c);
+		if(repartQ) q.repart(q_2,c);
+		int value = (isFinished == true) ? 0 : 1; 
+		if(repartP) {
+			c.ddm.setValue(pid,p_2.getId(),value);	
+			c.ddm.setValue(qid,p_2.getId(),value);	
+			if(repartQ) {
+				c.ddm.setValue(pid,q_2.getId(),value);
+				c.ddm.setValue(qid,q_2.getId(),value);
+				c.ddm.setValue(p_2.getId(),q_2.getId(),value);
+			}
+		}
+		else {
+			if(repartQ) {
+				c.ddm.setValue(pid,q_2.getId(),value);
+				c.ddm.setValue(qid,q_2.getId(),value);
+			}
+		}
 		// write Partitions to File
 		p.writeToFile(pid,c);
 		q.writeToFile(qid,c);
-
+		if(repartP) p_2.writeToFile(p_2.getId(),c);
+		if(repartQ) q_2.writeToFile(q_2.getId(),c);	
 		// return resources
-		p.clear();
-		q.clear();
+		p.clear(); p_2.clear();
+		q.clear(); q_2.clear();
 		compset.clear();
 	}
-
 	return newTotalEdges;	
 }
 
@@ -76,11 +92,9 @@ void Compute::initComputationSet(ComputationSet &compset,Partition &p,Partition 
 	compset.init(p,q,c);
 }
 
-long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io_service &ioServ) {
-	// TODO: parallel computing
+long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io_service &ioServ,bool &isFinished) {
+	isFinished = true;
 	long thisRoundEdges = 0;
-	int numThreads = c.getNumThreads();
-
 	int segsize = compset.getSize() / 64 + 1;
 	int nSegs = compset.getSize() / segsize + 1;
 
@@ -98,6 +112,11 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl;	
 		cout << "time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl << endl;
 
+		// TODO: if out of memory, isFinished = false.
+		/* if(outOfMemory)	// based on totalNumEdges of two partition
+		 * 	isFinished = false;	
+		 *	break;
+		 */ 
 		if(realIterEdges == 0)
 			break;	
 	}
@@ -155,13 +174,10 @@ void Compute::postProcessOneIteration(ComputationSet &compset) {
 			}	
 		}
 	}
-	// deltasV <- newsV,newV <- empty set
-	
+	// deltasV <- newsV - oldsV,newV <- empty set
 	for(int i = 0;i < compset.getSize();++i) {
 		bool newEmpty = compset.newEmpty(i);
-		
 		if(!newEmpty) {
-			// DeltasV = NewsV - oldsV
 			int len = 0; int n1 = compset.getNewsNumEdges(i); int n2 = compset.getOldsNumEdges(i);
 			vertexid_t *edges = new vertexid_t[n1];
 			char *labels = new char[n1];
@@ -178,44 +194,32 @@ void Compute::postProcessOneIteration(ComputationSet &compset) {
 	}
 }	
 
-
 long Compute::computeOneVertex(vertexid_t index,ComputationSet &compset,Context &c) {
-
 	long newEdgesNum = 0;
-
 	bool oldEmpty = compset.oldEmpty(index);
 	bool deltaEmpty = compset.deltaEmpty(index);
 	if(oldEmpty && deltaEmpty) return 0;	// if this vertex has no edges, no need to merge.
 	
 	ArraysToMerge arrays;
-
 	// find new edges to arrays
 	getEdgesToMerge(index,compset,oldEmpty,deltaEmpty,arrays,c);
-
 	// merge and sort edges, remove duplicate edges
 	arrays.mergeAndSort();
-
 	// add edges to News
 	newEdgesNum = arrays.getNumEdges();
-
-	
 	if(newEdgesNum)
 		compset.setNews(index,newEdgesNum,arrays.getEdgesFirstAddr(),arrays.getLabelsFirstAddr());
 	else
 		compset.clearNews(index);
-
-	// return resources
 	arrays.clear();
-
+	
 	return newEdgesNum;	
 }
 
 void Compute::getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,ArraysToMerge &arrays,Context &c) {
-		
 	// add s-rule edges	
 	if(!deltaEmpty) 	
 		genS_RuleEdges(index,compset,arrays,c);
-
 	// add d-rule edges merge Ov of only Dv
 	if(!oldEmpty) 
 		genD_RuleEdges(index,compset,arrays,c,true);
@@ -240,7 +244,6 @@ void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,ArraysToMe
 				added = true;
 			}
 			arrays.addOneEdge(edges[i],newLabel);
-			//cout << "S-rule: " << edges[i] << "," << (int)labels[i] << " -> (" << edges[i] << "," << (int)newLabel << ")" << endl;
 		}
 	}
 }
@@ -264,7 +267,7 @@ void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,ArraysToMe
 	vertexid_t indexInCompset;
 	for(vertexid_t i = 0;i < numEdges;++i) {
 		indexInCompset = compset.getIndexInCompSet(edges[i]);
-		// target vertice is in memory
+		// if target vertice is in memory
 		if(indexInCompset != -1) 
 			checkEdges(indexInCompset,labels[i],compset,arrays,c,isOld);
 	}	
@@ -289,7 +292,6 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,A
 				added = true;
 			}	
 			arrays.addOneEdge(edges[i],newVal);
-			//cout << "D-rule:" << (int)dstVal << " " << (int)labels[i] << " (" << edges[i] << "," << (int)newVal << ")" <<  endl;
 		}
 	}
 	
@@ -306,21 +308,18 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,A
 					added = true;
 				}	
 				arrays.addOneEdge(edges[i],newVal);
-				//cout << "D-rule:" << (int)dstVal << " " << (int)labels[i] << " (" << edges[i] << "," << (int)newVal << ")" <<  endl;
 			}
 		}
 	}
 }
 
-void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q,Context &c) {
-	// TODO: refactor this method.
+void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c) {
 	vertexid_t psize = compset.getPsize();	
 	vertexid_t numEdges,numVertices;
 	vertexid_t *edges; char *labels;
 	vertexid_t *addr; vertexid_t *index;
 
 	// update p
-	
 	numVertices = psize;
 	numEdges = compset.getPNumEdges();
 	isNewp = false;
@@ -347,7 +346,6 @@ void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q
 		delete[] edges; delete[] labels; delete[] addr; delete[] index;
 		c.vit.setDegree(p.getId(),numEdges);
 	}
-	
 	// update q
 	isNewq = false;
 	numVertices = compset.getQsize();
@@ -375,7 +373,16 @@ void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q
 		delete[] edges; delete[] labels; delete[] addr; delete[] index;
 		c.vit.setDegree(q.getId(),numEdges);
 	}
+	// update DDM
+	adjustDDM(p.getId(),isNewp,q.getId(),isNewq,isFinished,c); 
+}
+
+void Compute::needRepart(ComputationSet &compset,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
+	// TODO: better repart strategy
+	if(isFinished)
+		repart_p = repart_q = false;
+	else
+		repart_p = repart_q = true;	
 }
 
 }
-

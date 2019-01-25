@@ -8,7 +8,7 @@ DDM::DDM() {
 			matrix[i][j] = 1;
 }
 
-void DDM::adjust(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq) {
+void DDM::adjust(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished) {
 	if(isNewp) {
 		for(int i = 0;i < numPartitions;++i) {
 			if(i != p)	
@@ -21,7 +21,8 @@ void DDM::adjust(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq) {
 				matrix[i][q] = matrix[q][i] = 1;	
 		}	
 	}
-	matrix[p][q] = matrix[q][p] = 0;
+	if(isFinished)
+		matrix[p][q] = matrix[q][p] = 0;
 }
 
 bool DDM::scheduler(partitionid_t &p,partitionid_t &q) {
@@ -41,5 +42,15 @@ bool DDM::scheduler(partitionid_t &p,partitionid_t &q) {
 	return false;
 }
 
-
+void DDM::print() {
+	cout << "=====DDM Table=====" << endl;
+	cout << "numPartitions: " << numPartitions << endl;
+	for(int i = 0;i < numPartitions;++i) {
+		for(int j = 0;j < numPartitions;++j) {
+			cout << matrix[i][j] << " ";			
+		}	
+		cout << endl;
+	}
+	cout << endl;	
+}
 

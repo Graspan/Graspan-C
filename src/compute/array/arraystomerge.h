@@ -1,6 +1,7 @@
 #ifndef ARRAYSTOMERGE_H
 #define ARRAYSTOMERGE_H
 #include "../../common.h"
+#include "minheap.h"
 
 #define _CAPACITY_VALUE 8	// TODO: modify this number
 #define CAPACITY_VALUE 8	// TODO: modify this number
@@ -40,7 +41,8 @@ public:
 	 * after mergeAndSort, index and addr is useless
 	 */
 	void mergeAndSort();
-	void sort1();
+	void mergeKArrays();	// method 1
+	void sort1();			// method 2
 
 	void print();
 };

@@ -32,11 +32,9 @@ void ComputationSet::clear() {
 
 void ComputationSet::print() {
 	for(int i = 0;i < size;++i) {
-	//cout << "Old " << i;
-	//Olds[i].print();
-	cout << "Deltas: " << i;
-	Deltas[i].print();
-	//	News[i].print();
+		Olds[i].print();
+		Deltas[i].print();
+		News[i].print();
 	}	
 }
 
@@ -81,26 +79,6 @@ void ComputationSet::init(Partition &p,Partition &q,Context &c) {
 	interval.qFirstVid = c.vit.getStart(q.getId()); interval.qLastVid = interval.qFirstVid + qsize - 1;
 	interval.pFirstIndex = 0; interval.pLastIndex = psize - 1;
 	interval.qFirstIndex = psize; interval.qLastIndex = size - 1;
-
-	/*
-	cout << "pFirstVid: " << interval.pFirstVid << endl;
-	cout << "pLastVid: " << interval.pLastVid << endl;
-	cout << "pFirstIndex: " << interval.pFirstIndex << endl;
-	cout << "pLastIndex: " << interval.pLastIndex << endl;
-
-	cout << "qFirstVid: " << interval.qFirstVid << endl;
-	cout << "qLastVid: " << interval.qLastVid << endl;
-	cout << "qFirstIndex: " << interval.qFirstIndex << endl;
-	cout << "qLastIndex: " << interval.qLastIndex << endl;
-	*/
-
-	/*
-	for(int i = 0;i < size;++i) {
-		Olds[i].print();
-		Deltas[i].print();
-		News[i].print();
-	}
-	*/
 }
 
 vertexid_t ComputationSet::getIndexInCompSet(vertexid_t vid) {
