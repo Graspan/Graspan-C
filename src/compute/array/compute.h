@@ -43,6 +43,8 @@ public:
 	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,ArraysToMerge &arrays,Context &c,bool isOld);
 	
 	void updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c);
+	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
+
 	void adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished,Context &c);
 	void needRepart(ComputationSet &compset,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
 

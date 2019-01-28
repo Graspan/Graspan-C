@@ -13,7 +13,7 @@ Context::Context(int argc, char **argv) {
 		strcpy(graphFile,argv[1]);
 		strcpy(grammarFile,argv[2]);
 		numPartitions = atoi(argv[3]);
-		memBudget = (unsigned long long int)atoi(argv[4]) * (unsigned long long int)GB;
+		memBudget = (unsigned long int)atoi(argv[4]) * (unsigned long int)GB;
 		numThreads = atoi(argv[5]);		
 		cout << graphFile << " " << grammarFile << " " << numPartitions << " " << memBudget << " " << numThreads << endl;
 	}

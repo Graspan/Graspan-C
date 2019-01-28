@@ -11,7 +11,7 @@ class Context
 		char graphFile[BUFFER_SIZE];
 		char grammarFile[BUFFER_SIZE];
 		int numPartitions;
-		unsigned long long int memBudget;
+		unsigned long int memBudget;
 		int numThreads;
 
 	public:
@@ -26,7 +26,7 @@ class Context
 		inline char *getGraphFile() {return graphFile;}
 		inline char *getGrammarFile() {return grammarFile;}
 		inline int getNumPartitions() {return numPartitions;}
-		inline unsigned long long int getMemBudget() {return memBudget;}
+		inline unsigned long int getMemBudget() {return memBudget;}
 		inline int getNumThreads() {return numThreads;}
 
 		inline void setNumPartitions(int numPartitions) {this->numPartitions = numPartitions;}

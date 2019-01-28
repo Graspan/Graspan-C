@@ -1,4 +1,6 @@
 #include "computationset.h"
+#include <unistd.h>
+#include <cstdlib>
 
 namespace myarray {
 
@@ -43,6 +45,7 @@ void ComputationSet::init(Partition &p,Partition &q,Context &c) {
 	psize = p.getNumVertices();
 	qsize = q.getNumVertices();
 	size = psize + qsize;
+	
 	Olds = new EdgeArray[size];
 	Deltas = new EdgeArray[size];
 	News = new EdgeArray[size];
@@ -107,6 +110,14 @@ vertexid_t ComputationSet::getDeltasTotalNumEdges() {
 	return num;
 }
 
+vertexid_t ComputationSet::getDeltasTotalNumVertices() {
+	vertexid_t num = 0;
+	for(int i = 0;i < size;++i)
+		if(Deltas[i].getSize())
+			++num;
+	return num;
+}
+
 vertexid_t ComputationSet::getNewsTotalNumEdges() {
 	vertexid_t num = 0;
 	for(int i = 0;i < size;++i)
@@ -141,14 +152,14 @@ void ComputationSet::clearNews(vertexid_t index) {
 vertexid_t ComputationSet::getPNumEdges() {
 	vertexid_t res = 0;
 	for(int i = 0;i < psize;++i)
-		res += getOldsNumEdges(i);
+		res += (getOldsNumEdges(i) + getDeltasNumEdges(i));
 	return res;
 }
 
 vertexid_t ComputationSet::getQNumEdges() {
 	vertexid_t res = 0;
 	for(int i = psize;i < size;++i) {
-		res += getOldsNumEdges(i);	
+		res += (getOldsNumEdges(i) + getDeltasNumEdges(i));	
 	}
 	return res;
 }

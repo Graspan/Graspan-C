@@ -25,10 +25,9 @@ void Partition::clear() {
 }
 
 bool Partition::check() {
-	int curIndex = 0;	
 	for(int i = 0;i < numVertices;++i) {
-		if(myalgo::checkEdges(index[i],vertices + addr[i],labels + addr[i]))
-			return true;	
+			if(myalgo::checkEdges(index[i],vertices + addr[i],labels + addr[i])) 
+				return true;	
 	}	
 	return false;	
 }
@@ -128,6 +127,7 @@ void Partition::repart(Partition &p,Context &c) {
 			break;	
 		}
 	}
+
 	// update p
 	p.setId(numPartitions); 
 	c.setNumPartitions(numPartitions+1);
@@ -135,7 +135,8 @@ void Partition::repart(Partition &p,Context &c) {
 	for(int j = 0;j < numVertices-1-i;++j) {
 		pAddr[j] = addr[j+i+1]-addr[i+1];	// calculate offset
 	}
-	p.update(numVertices-1-i,totalNumEdges-curNumEdges,vertices+i+1,labels+i+1,pAddr,index+i+1);
+	p.update(numVertices-1-i,totalNumEdges-curNumEdges,vertices+addr[i+1],labels+addr[i+1],pAddr,index+(i+1));
+
 	delete[] pAddr;
 	c.vit.add(start+i+1,end,totalNumEdges-curNumEdges);
 	c.ddm.add();
@@ -170,4 +171,4 @@ void Partition::print(Context &c) {
 		}
 	}	
 }
-	
+

@@ -61,6 +61,7 @@ class ComputationSet {
 
 		vertexid_t getOldsTotalNumEdges();
 		vertexid_t getDeltasTotalNumEdges();
+		vertexid_t getDeltasTotalNumVertices();
 		vertexid_t getNewsTotalNumEdges();
 
 		void setOlds(vertexid_t index,int numEdges,vertexid_t *edges,char *labels);

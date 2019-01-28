@@ -159,13 +159,36 @@ bool checkEdges(int len,vertexid_t *A,char *B) {
 		return false;
 	else {
 		for(int i = 1;i < len;++i) {
-			if(A[i-1] > A[i])
+			if(A[i-1] > A[i]) {
 				return true;
-			if(A[i-1] == A[i] && B[i-1] >= B[i])
+			}
+			if(A[i-1] == A[i] && B[i-1] >= B[i]) {
 				return true;	
+			}	
 		}
 		return false;
 	}
+}
+
+unsigned long int getUsedMemory(const pid_t pid) {
+	unsigned long int vmrss = 0;	
+	char fname[256] = {0};
+	sprintf(fname,"/proc/%d/status",pid);
+	FILE *fp = fopen(fname,"r");
+	if(!fp) {
+		cout << "can't read file: " << fname << endl;
+		exit(-1);
+	}
+	else {
+		char vmrss_line[256] = {0};
+		char name[32] = {0};
+		for(int i = 0;i < VMRSS_LINE-1;++i)
+			char *res = fgets(vmrss_line,sizeof(vmrss_line),fp);
+		char *res = fgets(vmrss_line,sizeof(vmrss_line),fp);
+		sscanf(vmrss_line,"%s %lu",name,&vmrss);
+		fclose(fp);	
+	}
+	return vmrss * 1024;
 }
 
 }

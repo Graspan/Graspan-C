@@ -37,22 +37,26 @@ long Compute::startCompute(Context &c)  {
 	while(scheduler(pid,qid,c)) {
 		p.loadFromFile(pid,c);
 		q.loadFromFile(qid,c);
-
+		
 		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
 		cout << "P = " << pid << " , Q = " << qid << endl;  
 		// check partitions
 		if(p.check() || q.check()) {
-			cout << "partition duplication happened!" << endl;
+			cout << "partition p or q duplication happened!" << endl;
 			exit(-1);
 		}
+
 		// init compset
 		ComputationSet compset;
 		initComputationSet(compset,p,q,c);
 		// compute one round 
 		bool isFinished = false;
+
 		newTotalEdges += computeOneRound(compset,c,ioServ,isFinished);
+
 		// update Partitions and adjust VIT and DDM
 		updatePartitions(compset,p,q,isFinished,c);
+
 		// repart if out of memory,adjust VIT and DDM
 		bool repartP = false; bool repartQ = false; 
 		Partition p_2,q_2;
@@ -75,6 +79,12 @@ long Compute::startCompute(Context &c)  {
 				c.ddm.setValue(qid,q_2.getId(),value);
 			}
 		}
+
+		if(p_2.check() || q_2.check()) {
+			cout << "REPA p_2 or q_2 duplication happened!" << endl;
+			exit(-1);
+		}
+				
 		// write Partitions to File
 		p.writeToFile(pid,c);
 		q.writeToFile(qid,c);
@@ -84,6 +94,7 @@ long Compute::startCompute(Context &c)  {
 		p.clear(); p_2.clear();
 		q.clear(); q_2.clear();
 		compset.clear();
+
 	}
 	return newTotalEdges;	
 }
@@ -97,9 +108,17 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 	long thisRoundEdges = 0;
 	int segsize = compset.getSize() / 64 + 1;
 	int nSegs = compset.getSize() / segsize + 1;
-
+ 
 	int iterId = 0;
 	while(1) {
+		
+		unsigned long int usedMemory = myalgo::getUsedMemory(getpid());
+		if(usedMemory >= (unsigned long int)(0.8 * c.getMemBudget())) {
+			cout << "MEMORY IS OUT! " << endl;
+			isFinished = false;
+			break;
+		}
+		
 		clock_t start_t,end_t;
 		start_t = clock();
 		computeOneIteration(compset,segsize,nSegs,c,ioServ);
@@ -112,11 +131,7 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl;	
 		cout << "time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl << endl;
 
-		// TODO: if out of memory, isFinished = false.
-		/* if(outOfMemory)	// based on totalNumEdges of two partition
-		 * 	isFinished = false;	
-		 *	break;
-		 */ 
+		//unsigned long int usedMemory = myalgo::getUsedMemory(getpid());
 		if(realIterEdges == 0)
 			break;	
 	}
@@ -173,6 +188,7 @@ void Compute::postProcessOneIteration(ComputationSet &compset) {
 				delete[] edges; delete[] labels;
 			}	
 		}
+		compset.clearDeltas(i);
 	}
 	// deltasV <- newsV - oldsV,newV <- empty set
 	for(int i = 0;i < compset.getSize();++i) {
@@ -314,67 +330,77 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,A
 }
 
 void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c) {
-	vertexid_t psize = compset.getPsize();	
-	vertexid_t numEdges,numVertices;
-	vertexid_t *edges; char *labels;
-	vertexid_t *addr; vertexid_t *index;
+	// update partition p and q
+	isNewp = isNewq = false;
+	updateSinglePartition(compset,p,isFinished,c,true);
+	updateSinglePartition(compset,q,isFinished,c,false);
+	// update DDM
+	adjustDDM(p.getId(),isNewp,q.getId(),isNewq,isFinished,c); 
+}
 
-	// update p
-	numVertices = psize;
-	numEdges = compset.getPNumEdges();
-	isNewp = false;
-	if(numEdges > c.vit.getDegree(p.getId())) {
-		isNewp = true;	
-		edges = new vertexid_t[numEdges];
-		labels = new char[numEdges];
-		addr = new vertexid_t[numVertices];	
-		index = new vertexid_t[numVertices];
-		for(int i = 0;i < numVertices;++i)
-			index[i] = 0;
-
-		vertexid_t cur_addr = 0;
-		for(vertexid_t i = 0;i < numVertices;++i) {
-			addr[i] = cur_addr;
-			index[i] = compset.getOldsNumEdges(i);
-			if(index[i]) {
-				memcpy(edges + addr[i],compset.getOldsEdges(i),sizeof(vertexid_t) * index[i]);
-				memcpy(labels + addr[i],compset.getOldsLabels(i),sizeof(char) * index[i]);
-			}
-			cur_addr += index[i];
-		}
-		p.update(numVertices,numEdges,edges,labels,addr,index);
-		delete[] edges; delete[] labels; delete[] addr; delete[] index;
-		c.vit.setDegree(p.getId(),numEdges);
+void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP) {
+	vertexid_t numEdges,numVertices,offset;
+	vertexid_t realNumEdges = 0;
+	vertexid_t *edges; char *labels; vertexid_t *addr; vertexid_t *index;
+	if(isP) {
+		numVertices = compset.getPsize();
+		numEdges = compset.getPNumEdges();
+		offset = 0;
 	}
-	// update q
-	isNewq = false;
-	numVertices = compset.getQsize();
-	numEdges = compset.getQNumEdges();
-	if(numEdges > c.vit.getDegree(q.getId())) {
-		isNewq = true;	
+	else {
+		numVertices = compset.getQsize();
+		numEdges = compset.getQNumEdges();
+		offset = compset.getPsize();
+	}
+	if(numEdges > c.vit.getDegree(p.getId())) {
+		if(isP) 
+			isNewp = true;
+		else
+			isNewq = true;
 		edges = new vertexid_t[numEdges];
 		labels = new char[numEdges];
 		addr = new vertexid_t[numVertices];
 		index = new vertexid_t[numVertices];
-		for(int i = 0;i < numVertices;++i)
-			index[i] = 0;
 
-		vertexid_t cur_addr = 0;
-		for(vertexid_t i = 0;i < numVertices;++i) {
-			addr[i] = cur_addr;
-			index[i] = compset.getOldsNumEdges(i + psize);
-			if(index[i]) {
-				memcpy(edges + addr[i],compset.getOldsEdges(i + psize),sizeof(vertexid_t) * index[i]);
-				memcpy(labels + addr[i],compset.getOldsLabels(i + psize),sizeof(char) * index[i]);
-			}
+		// new edges only in Ov
+		if(isFinished) {
+			vertexid_t cur_addr = 0;	
+			for(vertexid_t i = 0;i < numVertices;++i) {
+				addr[i] = cur_addr;
+				index[i] = compset.getOldsNumEdges(i + offset);
+				if(compset.getOldsNumEdges(i + offset)) {
+					memcpy(edges + addr[i],compset.getOldsEdges(i + offset),sizeof(vertexid_t) * index[i]);
+					memcpy(labels + addr[i],compset.getOldsLabels(i + offset),sizeof(char) * index[i]);
+				}	
 				cur_addr += index[i];
+			}	
+			realNumEdges = numEdges;
 		}
-		q.update(numVertices,numEdges,edges,labels,addr,index);
+		// new edges in Ov and Dv
+		else {
+			memset(edges,0,sizeof(vertexid_t) * numEdges);
+			memset(labels,0,sizeof(char) * numEdges);
+			vertexid_t cur_addr = 0;
+			for(vertexid_t i = 0;i < numVertices;++i) {
+				addr[i] = cur_addr;
+				int n1 = compset.getOldsNumEdges(i + offset); int n2 = compset.getDeltasNumEdges(i + offset);
+				vertexid_t *tmpEdges = new vertexid_t[n1 + n2];
+				char *tmpLabels = new char[n1 + n2];
+				myalgo::unionTwoArray(index[i],tmpEdges,tmpLabels,n1,compset.getOldsEdges(i + offset),compset.getOldsLabels(i + offset),n2,compset.getDeltasEdges(i + offset),compset.getDeltasLabels(i + offset));
+				if(index[i]) {
+					memcpy(edges + addr[i],tmpEdges,sizeof(vertexid_t) * index[i]);
+					memcpy(labels + addr[i],tmpLabels,sizeof(char) * index[i]);
+				}
+				delete[] tmpEdges; delete[] tmpLabels;
+				cur_addr += index[i];
+				realNumEdges += index[i];
+			}
+		}
+		p.update(numVertices,realNumEdges,edges,labels,addr,index);
 		delete[] edges; delete[] labels; delete[] addr; delete[] index;
-		c.vit.setDegree(q.getId(),numEdges);
+		c.vit.setDegree(p.getId(),realNumEdges);
+
 	}
-	// update DDM
-	adjustDDM(p.getId(),isNewp,q.getId(),isNewq,isFinished,c); 
 }
 
 void Compute::needRepart(ComputationSet &compset,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {

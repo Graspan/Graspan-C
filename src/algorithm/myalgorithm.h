@@ -18,5 +18,7 @@ void minusTwoArray(int &len,vertexid_t *dstA,char *dstB,int len1,vertexid_t *A1,
 void removeDuple(int &len,vertexid_t *dstA,char *dstB,int srclen,vertexid_t *srcA,char *srcB); // remove duplicate edges
 bool checkEdges(int len,vertexid_t *A,char *B); // check duplicate edges and sequence
 
+unsigned long int getUsedMemory(const pid_t pid);
+
 };
 #endif

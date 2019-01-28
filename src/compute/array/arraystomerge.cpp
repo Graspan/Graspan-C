@@ -8,7 +8,6 @@ ArraysToMerge::ArraysToMerge() {
 }
 
 void ArraysToMerge::mergeAndSort() {
-	//sort1();
 	mergeKArrays();
 }
 
@@ -64,8 +63,7 @@ void ArraysToMerge::mergeKArrays() {
 
 void ArraysToMerge::sort1() {
 	if(size) {
-		if(arraySize > 1)	
-			myalgo::quickSort(this->edges,this->labels,0,size-1);
+		myalgo::quickSort(this->edges,this->labels,0,size-1);
 		// remove duplicate edges
 		vertexid_t *edge_v = new vertexid_t[size];
 		char *edge_l = new char[size];

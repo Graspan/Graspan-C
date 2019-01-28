@@ -1,13 +1,17 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <mutex>
 #include <condition_variable>
 
 using std::cout;
 using std::endl;
 
+#define VMRSS_LINE 21	// in ubuntu os,vmrss_line = 21.
 #define BUFFER_SIZE 256
 #define GRAMMAR_STR_LEN 36
 #define GB 1073741824
