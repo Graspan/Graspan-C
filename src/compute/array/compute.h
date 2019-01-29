@@ -21,7 +21,7 @@ private:
 	/* parallel computing
 	 * reference: https://github.com/Graspan/graspan-cpp/blob/master/src/edgecomp/engine.cpp
 	 */
-	std::mutex add_edges,comp_mtx;
+	std::mutex comp_mtx;
 	std::condition_variable cv;
 	short numFinished;
 	bool compFinished;
@@ -46,7 +46,7 @@ public:
 	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
 
 	void adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished,Context &c);
-	void needRepart(ComputationSet &compset,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
+	void needRepart(ComputationSet &compset,Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
 
 	long startCompute(Context &c);	// return newTotalEdges;
 };

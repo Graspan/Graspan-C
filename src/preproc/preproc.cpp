@@ -57,16 +57,38 @@ void Preproc::setNumEdges(Context &c) {
 	fclose(fp);
 	
 }
-
-// TODO: calculate numPartitions based on memoryBudget
+/* two partition used memory: 8 * numEdges + 5 * numVertices
+ * compset used memory: 0.55 * numEdges + 139 * numRealVertices (numRealVertices <= numVertices)
+ * preproc need memory: 8.55 * numEdges + 5 * numVertices + 139 * numRealVertices;
+ */	
 void Preproc::setVIT(Context &c) {
 	setNumEdges(c);	
 	int numErules = c.grammar.getNumErules();
 	int numPartitions = c.getNumPartitions();
-	
+	if(numPartitions <= 1) {
+		numPartitions = 2;
+		c.setNumPartitions(2);
+	}
 	int total_size = totalNumEdges + (maxVid+1) * numErules;
-	int partition_size = (total_size) / numPartitions;
+	int numRealVertices = 0;
+	if(numErules) 
+		numRealVertices = maxVid+1;
+	else {
+		for(int i = 0;i <= maxVid;++i) {
+			if(numEdges[i])
+				++numRealVertices;	
+		}	
+	}
+	// numPartitions based on memBudget and user cmd.
+	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * (maxVid+1) + (unsigned long int)8.55 * total_size;
+	unsigned long int b = c.getMemBudget() * 0.4;
+	int minNumPartitions = a / b + 1;
+	if(minNumPartitions > numPartitions) {
+		numPartitions = (minNumPartitions <= 2) ? 2 : minNumPartitions;
+		c.setNumPartitions(numPartitions);
+	}
 
+	int partition_size = (total_size) / numPartitions;
 	int part_id = 0; int cur_size = 0; int i = 0; int v_start = 0;
 	for(;i <= maxVid;++i) {
 		cur_size += (numErules + numEdges[i]);
@@ -86,13 +108,9 @@ void Preproc::setVIT(Context &c) {
 			}
 		}	
 	}
-	
-
 	cout << "NumVertex: " << maxVid+1 << endl;
 	cout << "NumEdges: " << total_size << endl;
-	
 	c.ddm.setNumPartitions(numPartitions);
-	//c.vit.print();
 }
 
 void Preproc::savePartitions(Context &c) {
@@ -180,15 +198,11 @@ void Preproc::savePartitions(Context &c) {
 			c.vit.setDegree(i,c.vit.getDegree(i)-dupleNum);
 		}	
 	}
-	
-	cout << "DUPLE EDGES: " << totalDuplicateEdges << endl;
-
 	delete[] addr;
 	delete[] index;
 	delete[] vertices;
 	delete[] labels;
-
-	cout << "ADD ERULE EDGES: " << getAddedEdgesNum(c) << endl;
+	cout << "DUPLE EDGES: " << totalDuplicateEdges << endl;
 }
 
 void Preproc::test(Context &c) {

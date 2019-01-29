@@ -21,6 +21,7 @@ public:
 	// getters and setters
 	inline partitionid_t getId() {return id;}
 	inline vertexid_t getNumVertices() {return numVertices;}
+	inline vertexid_t getNumEdges() {return numEdges;}
 	inline vertexid_t getlndex(vertexid_t id) {return index[id];}
 	inline vertexid_t* getEdgesFirstAddr(vertexid_t id) {return vertices + addr[id];}
 	inline char* getLabelsFirstAddr(vertexid_t id) {return labels + addr[id];}

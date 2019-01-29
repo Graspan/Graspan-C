@@ -110,7 +110,7 @@ vertexid_t ComputationSet::getDeltasTotalNumEdges() {
 	return num;
 }
 
-vertexid_t ComputationSet::getDeltasTotalNumVertices() {
+vertexid_t ComputationSet::getDeltasNumRealVertices() {
 	vertexid_t num = 0;
 	for(int i = 0;i < size;++i)
 		if(Deltas[i].getSize())

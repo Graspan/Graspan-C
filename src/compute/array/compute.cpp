@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <time.h>
 #include <unistd.h>
-
 #include "compute.h"
 #include "arraystomerge.h"
 #include "../../algorithm/myalgorithm.h"
@@ -35,9 +34,18 @@ long Compute::startCompute(Context &c)  {
 	int roundId = 0;
 	// TODO: better schedular algorithm 
 	while(scheduler(pid,qid,c)) {
-		p.loadFromFile(pid,c);
-		q.loadFromFile(qid,c);
-		
+		if(pid != p.getId()) {
+			if(p.getId() != -1)
+				p.writeToFile(p.getId(),c);
+			p.clear();
+			p.loadFromFile(pid,c);
+		}
+		if(qid != q.getId()) {
+			if(q.getId() != -1)	
+				q.writeToFile(q.getId(),c);
+			q.clear();
+			q.loadFromFile(qid,c);
+		}
 		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
 		cout << "P = " << pid << " , Q = " << qid << endl;  
 		// check partitions
@@ -45,22 +53,18 @@ long Compute::startCompute(Context &c)  {
 			cout << "partition p or q duplication happened!" << endl;
 			exit(-1);
 		}
-
 		// init compset
 		ComputationSet compset;
 		initComputationSet(compset,p,q,c);
 		// compute one round 
 		bool isFinished = false;
-
 		newTotalEdges += computeOneRound(compset,c,ioServ,isFinished);
-
 		// update Partitions and adjust VIT and DDM
 		updatePartitions(compset,p,q,isFinished,c);
-
 		// repart if out of memory,adjust VIT and DDM
 		bool repartP = false; bool repartQ = false; 
 		Partition p_2,q_2;
-		needRepart(compset,repartP,repartQ,isFinished,c);
+		needRepart(compset,p,q,repartP,repartQ,isFinished,c);
 		if(repartP) p.repart(p_2,c);
 		if(repartQ) q.repart(q_2,c);
 		int value = (isFinished == true) ? 0 : 1; 
@@ -79,23 +83,21 @@ long Compute::startCompute(Context &c)  {
 				c.ddm.setValue(qid,q_2.getId(),value);
 			}
 		}
-
+		// check repart partitions
 		if(p_2.check() || q_2.check()) {
 			cout << "REPA p_2 or q_2 duplication happened!" << endl;
 			exit(-1);
 		}
-				
 		// write Partitions to File
-		p.writeToFile(pid,c);
-		q.writeToFile(qid,c);
 		if(repartP) p_2.writeToFile(p_2.getId(),c);
 		if(repartQ) q_2.writeToFile(q_2.getId(),c);	
 		// return resources
-		p.clear(); p_2.clear();
-		q.clear(); q_2.clear();
+		p_2.clear(); q_2.clear();
 		compset.clear();
-
 	}
+	p.writeToFile(p.getId(),c);
+	q.writeToFile(q.getId(),c);
+	p.clear(); q.clear();
 	return newTotalEdges;	
 }
 
@@ -111,14 +113,12 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
  
 	int iterId = 0;
 	while(1) {
-		
 		unsigned long int usedMemory = myalgo::getUsedMemory(getpid());
 		if(usedMemory >= (unsigned long int)(0.8 * c.getMemBudget())) {
 			cout << "MEMORY IS OUT! " << endl;
 			isFinished = false;
 			break;
 		}
-		
 		clock_t start_t,end_t;
 		start_t = clock();
 		computeOneIteration(compset,segsize,nSegs,c,ioServ);
@@ -130,8 +130,7 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 		cout << "EDGES THIS ITER: " << realIterEdges << endl;
 		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl;	
 		cout << "time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl << endl;
-
-		//unsigned long int usedMemory = myalgo::getUsedMemory(getpid());
+	
 		if(realIterEdges == 0)
 			break;	
 	}
@@ -158,7 +157,7 @@ void Compute::runUpdates(int lower,int upper,int nSegs,ComputationSet &compset,C
 	for(int i = lower;i < upper;++i)
 		computeOneVertex(i,compset,c);			
 
-	std::unique_lock<std::mutex> lck(add_edges);
+	std::unique_lock<std::mutex> lck(comp_mtx);
 	++numFinished;
 	if(numFinished == nSegs) {
 		compFinished = true;
@@ -403,12 +402,24 @@ void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool is
 	}
 }
 
-void Compute::needRepart(ComputationSet &compset,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
-	// TODO: better repart strategy
+void Compute::needRepart(ComputationSet &compset,Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
 	if(isFinished)
 		repart_p = repart_q = false;
-	else
-		repart_p = repart_q = true;	
+	else {
+		vertexid_t pNumEdges = p.getNumEdges();
+		vertexid_t qNumEdges = q.getNumEdges();
+		if(3 * pNumEdges < 2 * qNumEdges) {
+			repart_p = false;
+			repart_q = true;
+		}
+		else if(2 * pNumEdges < 3 * qNumEdges) {
+			repart_p = repart_q = true;	
+		}		
+		else {
+			repart_p = true;
+			repart_q = false;
+		}
+	}	
 }
 
 }
