@@ -12,9 +12,10 @@ GRAMMAR=$2
 NUMPARTITIONS=$3
 MEMBUDGET=$4
 NUMTHREADS=$5
+DATASTRUCTURE=$6
 
 rm *.part
 
-echo "running..."
-../bin/comp $1 $2 $3 $4 $5
-echo "finished"
+echo "DiskSpa running..."
+../bin/comp $1 $2 $3 $4 $5 $6
+echo "DiskSpa finished"

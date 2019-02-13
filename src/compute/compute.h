@@ -1,16 +1,14 @@
-#ifndef ARRAY_COMPUTE_H
-#define ARRAY_COMPUTE_H
+#ifndef COMPUTE_H
+#define COMPUTE_H
 
 #include <boost/asio/io_service.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
-
 #include "computationset.h"
-#include "arraystomerge.h"
-#include "../../datastructures/partition.h"
-#include "../../common.h"
-
-namespace myarray {
+#include "array/arraystomerge.h"
+#include "list/liststomerge.h"
+#include "../datastructures/partition.h"
+#include "../common.h"
 
 class Compute {
 private:
@@ -18,9 +16,6 @@ private:
 	bool isNewp;
 	bool isNewq;
 
-	/* parallel computing
-	 * reference: https://github.com/Graspan/graspan-cpp/blob/master/src/edgecomp/engine.cpp
-	 */
 	std::mutex comp_mtx;
 	std::condition_variable cv;
 	short numFinished;
@@ -37,11 +32,15 @@ public:
 	long computeOneVertex(vertexid_t index,ComputationSet &compset,Context &c);		
 	void postProcessOneIteration(ComputationSet &compset);
 
-	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,ArraysToMerge &arrays,Context &c);
-	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,ArraysToMerge &arrays,Context &c);
-	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,ArraysToMerge &arrays,Context &c,bool isOld);
-	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,ArraysToMerge &arrays,Context &c,bool isOld);
-	
+	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,myarray::ArraysToMerge &arrays,Context &c);
+	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,mylist::ListsToMerge &lists,Context &c);
+	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c);
+	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c);
+	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld);
+	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld);
+	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld);
+	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld);
+
 	void updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c);
 	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
 
@@ -50,5 +49,4 @@ public:
 
 	long startCompute(Context &c);	// return newTotalEdges;
 };
-}
 #endif

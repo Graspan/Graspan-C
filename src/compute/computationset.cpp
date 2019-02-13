@@ -2,8 +2,6 @@
 #include <unistd.h>
 #include <cstdlib>
 
-namespace myarray {
-
 ComputationSet::ComputationSet() {
 	psize = qsize = size = 0;				
 }
@@ -163,7 +161,3 @@ vertexid_t ComputationSet::getQNumEdges() {
 	}
 	return res;
 }
-
-}
-
-

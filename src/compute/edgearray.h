@@ -1,8 +1,6 @@
-#ifndef ARRAY_EDGEARRAY_H
-#define ARRAY_EDGEARRAY_H
-#include "../../common.h"
-
-namespace myarray {
+#ifndef EDGEARRAY_H
+#define EDGEARRAY_H
+#include "../common.h"
 
 class EdgeArray {		
 	private:		
@@ -26,6 +24,5 @@ class EdgeArray {
 
 		void print();
 };		
-}
 
 #endif

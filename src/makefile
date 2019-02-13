@@ -11,7 +11,7 @@ CFLAGS= -I$(BOOST_PATH)/include -L$(BOOST_PATH)/lib -O2 -ggdb -lboost_thread -lp
 # preprocessing
 PREP=preproc/preproc.cpp preproc/run_pre.cpp
 # edge computation
-COMPUTE=compute/run_computation.cpp compute/array/arraystomerge.cpp compute/array/computationset.cpp compute/array/compute.cpp compute/array/edgearray.cpp compute/array/minheap.cpp
+COMPUTE=compute/run_computation.cpp compute/array/arraystomerge.cpp compute/computationset.cpp compute/compute.cpp compute/edgearray.cpp compute/minheap.cpp compute/list/liststomerge.cpp compute/list/edgelist.cpp
 # datastructures
 DATASTRUCTURES=datastructures/grammar.cpp datastructures/partition.cpp datastructures/vit.cpp datastructures/ddm.cpp
 # algorithm

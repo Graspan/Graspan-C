@@ -1,6 +1,5 @@
+#include <limits.h>
 #include "minheap.h"
-
-namespace myarray {
 
 MinHeap::MinHeap(MinHeapNode a[],int size) {	
 	this->size = size;
@@ -33,6 +32,4 @@ void MinHeap::replaceMin(MinHeapNode p) {
 
 void MinHeap::swap(MinHeapNode *x,MinHeapNode *y) {
 	MinHeapNode tmp = *x; *x = *y; *y = tmp;		
-}
-
 }

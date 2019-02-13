@@ -1,10 +1,8 @@
 #ifndef MINHEAP_H
 #define MINHEAP_H
-#include <limits.h>
-#include "../../common.h"
-#include "../../algorithm/myalgorithm.h"
+#include "../common.h"
+#include "../algorithm/myalgorithm.h"
 
-namespace myarray {
 typedef struct minHeapNode {
 	vertexid_t key_v;
 	char key_c;
@@ -26,5 +24,4 @@ class MinHeap {
 		void replaceMin(MinHeapNode p);
 		void swap(MinHeapNode *x,MinHeapNode *y);
 };
-}
 #endif

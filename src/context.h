@@ -4,6 +4,7 @@
 #include "datastructures/grammar.h"
 #include "datastructures/vit.h"
 #include "datastructures/ddm.h"
+enum Datastructure {ARRAY,LIST};
 
 class Context
 {
@@ -13,6 +14,7 @@ class Context
 		int numPartitions;
 		unsigned long int memBudget;
 		int numThreads;
+		Datastructure datastructure;	
 
 	public:
 		Grammar grammar;
@@ -28,9 +30,7 @@ class Context
 		inline int getNumPartitions() {return numPartitions;}
 		inline unsigned long int getMemBudget() {return memBudget;}
 		inline int getNumThreads() {return numThreads;}
-
+		inline Datastructure getDatastructure() {return datastructure;}
 		inline void setNumPartitions(int numPartitions) {this->numPartitions = numPartitions;}
 };
-
-
 #endif

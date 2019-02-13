@@ -1,11 +1,9 @@
-#ifndef ARRAY_COMPUTATIONSET_H
-#define ARRAY_COMPUTATIONSET_H
-#include "../../common.h"
-#include "../../datastructures/partition.h"
+#ifndef COMPUTATIONSET_H
+#define COMPUTATIONSET_H
+#include "../common.h"
+#include "../datastructures/partition.h"
 #include "edgearray.h"
-#include "../../context.h"
-
-namespace myarray {		
+#include "../context.h"
 
 // Partition p,q	
 typedef struct interval {
@@ -77,5 +75,4 @@ class ComputationSet {
 		void print();
 		vertexid_t getDeltasNumRealVertices();
 };		
-}
 #endif

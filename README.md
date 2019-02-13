@@ -13,11 +13,11 @@ First, download the entire DiskSpa source code into your machine. Next, edit the
 ### Running DiskSpa
 ```
 cd src
-./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads>
+./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads> array
+./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads> list
 ```
 
 ## 待实现的功能
 ```
 1.更高效的调度算法.
-2.设计其他的数据结构，与当前数组效率进行对比。
 ```

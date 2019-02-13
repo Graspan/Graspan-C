@@ -1,8 +1,6 @@
 #include "edgearray.h"
-#include "../../preproc/preproc.h"
-#include "../../algorithm/myalgorithm.h"
-
-namespace myarray {
+#include "../preproc/preproc.h"
+#include "../algorithm/myalgorithm.h"
 
 EdgeArray::EdgeArray() {
 	this->size = 0;				
@@ -66,5 +64,4 @@ void EdgeArray::clear() {
 		}
 		size = 0;
 	}	
-}
 }

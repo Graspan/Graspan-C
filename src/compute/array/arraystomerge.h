@@ -1,7 +1,6 @@
 #ifndef ARRAYSTOMERGE_H
 #define ARRAYSTOMERGE_H
 #include "../../common.h"
-#include "minheap.h"
 
 #define _CAPACITY_VALUE 8	// TODO: modify this number
 #define CAPACITY_VALUE 8	// TODO: modify this number

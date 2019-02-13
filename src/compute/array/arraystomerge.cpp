@@ -1,5 +1,7 @@
 #include "arraystomerge.h"
 #include "../../algorithm/myalgorithm.h"
+#include "../minheap.h"
+#include <limits.h>
 
 namespace myarray {
 	

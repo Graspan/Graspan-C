@@ -26,7 +26,6 @@ void DDM::adjust(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool is
 }
 
 bool DDM::scheduler(partitionid_t &p,partitionid_t &q) {
-	
 	p = q = -1;
 	for(int i = 0;i < numPartitions;++i) {
 		for(int j = 0;j < numPartitions;++j) {
