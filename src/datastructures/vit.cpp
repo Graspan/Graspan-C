@@ -1,7 +1,7 @@
 #include "vit.h"
 #include <stdlib.h>
 
-Vit::Vit(int size,vertexid_t *start,vertexid_t *end,int *degrees) {
+Vit::Vit(int size,vertexid_t *start,vertexid_t *end,long *degrees) {
 	this->size = size;
 	this->capacity = 2 * size ;
 	p = (VitNode*)calloc(capacity,sizeof(VitNode));
@@ -25,7 +25,7 @@ void Vit::clear() {
 	}	
 }
 
-void Vit::setVitValue(int vitId,vertexid_t start,vertexid_t end,int numEdges) {
+void Vit::setVitValue(int vitId,vertexid_t start,vertexid_t end,long numEdges) {
 	if(vitId >= size || vitId < 0)
 		cout << "Invalid vitId!" << endl;
 	else {
@@ -35,7 +35,7 @@ void Vit::setVitValue(int vitId,vertexid_t start,vertexid_t end,int numEdges) {
 	}
 }
 
-void Vit::add(vertexid_t start,vertexid_t end,int numEdges) {
+void Vit::add(vertexid_t start,vertexid_t end,long numEdges) {
 	if(size == capacity) {
 		capacity *= 2;
 		p = (VitNode*)realloc(p,sizeof(VitNode)*capacity);

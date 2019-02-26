@@ -7,7 +7,7 @@
 
 class Preproc {
 	private:
-		vertexid_t totalNumEdges;
+		long totalNumEdges;
 		vertexid_t totalDuplicateEdges;
 		vertexid_t maxVid;
 		vertexid_t *numEdges;        // degree of each vertex. size = maxVid+1

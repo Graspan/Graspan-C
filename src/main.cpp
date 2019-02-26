@@ -2,7 +2,7 @@
 #include "preproc/run_pre.h"
 #include "compute/run_computation.h"
 #include <iostream>
-#include <time.h>
+#include <ctime>
 using std::cout;
 using std::endl;
 
@@ -10,20 +10,20 @@ int main(int argc,char **argv)
 {	
 	Context c(argc,argv);
 
-	clock_t start_t,end_t;
-	long int prepTime,compTime,totalTime;
+	time_t start_t,end_t;
+	time_t prepTime,compTime,totalTime;
 	cout << "===========PREPROCESS BEGIN==========" << endl;
-	start_t = clock();
+	start_t = time(NULL);
 	preprocess(c);
-	end_t = clock();
-	prepTime = (end_t - start_t) / CLOCKS_PER_SEC;
+	end_t = time(NULL);
+	prepTime = end_t - start_t;
 	cout << "===========PREPROCESS END============" << endl;
 
 	cout << "===========COMPUTE BEGIN=============" << endl;
-	start_t = clock();
+	start_t = time(NULL);
 	cout << "NEW EDGES TOTAL: " << run_computation(c) << endl;
-	end_t = clock();
-	compTime = (end_t - start_t) / CLOCKS_PER_SEC;
+	end_t = time(NULL);
+	compTime = end_t - start_t;
 	cout << "===========COMPUTE END===============" << endl;
 	
 	cout << "PREP TIME: " << prepTime << "s" << endl;

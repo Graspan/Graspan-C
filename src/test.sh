@@ -2,6 +2,7 @@
 
 #use path according to boost installation directory in user machine
 export LD_LIBRARY_PATH=/home/aftab/Downloads/boost_1.62_installed/lib:$LD_LIBRARY_PATH
+#export LD_LIBRARY_PATH=/home/cloud/aftab/Downloads/boost_1.62_installed/lib:$LD_LIBRARY_PATH
 
 #dataset path and grammar files path
 RULES_DATAFLOW=rules_dataflow
@@ -41,6 +42,6 @@ runDiskSpa $POINTSTO_DIR/Hdfs_Points-to $RULES_POINTSTO $NUMPARTITIONS $MEMBUDGE
 runDiskSpa $POINTSTO_DIR/Mapreduce_Points-to $RULES_POINTSTO $NUMPARTITIONS $MEMBUDGET $NUMTHREADS
 runDiskSpa $POINTSTO_DIR/PostgreSQL_8.3.9_Points-to $RULES_POINTSTO $NUMPARTITIONS $MEMBUDGET $NUMTHREADS
 
-#runDiskSpa $DATAFLOW_DIR/Linux_dataflow_data $RULES_DATAFLOW $NUMPARTITIONS $MEMBUDGET $NUMTHREADS 
-#runDiskSpa $POINTSTO_DIR/Linux_pointsto_data $RULES_POINTSTO $NUMPARTITIONS $MEMBUDGET $NUMTHREADS
+runDiskSpa $DATAFLOW_DIR/Linux_dataflow_data $RULES_DATAFLOW $NUMPARTITIONS $MEMBUDGET $NUMTHREADS 
+runDiskSpa $POINTSTO_DIR/Linux_pointsto_data $RULES_POINTSTO $NUMPARTITIONS $MEMBUDGET $NUMTHREADS
 echo "DiskSpa test finished"

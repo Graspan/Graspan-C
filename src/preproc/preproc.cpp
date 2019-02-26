@@ -89,7 +89,7 @@ void Preproc::setVIT(Context &c) {
 	}
 
 	int partition_size = (total_size) / numPartitions;
-	int part_id = 0; int cur_size = 0; int i = 0; int v_start = 0;
+	int part_id = 0; long cur_size = 0; int i = 0; int v_start = 0;
 	for(;i <= maxVid;++i) {
 		cur_size += (numErules + numEdges[i]);
 		if(part_id == numPartitions - 1) {
@@ -116,7 +116,7 @@ void Preproc::setVIT(Context &c) {
 void Preproc::savePartitions(Context &c) {
 	
 	int numErules = c.grammar.getNumErules();	
-	int size = totalNumEdges + (maxVid+1) * numErules;
+	long size = totalNumEdges + (maxVid+1) * numErules;
 	
 	/* using 1D array instead of 2D array
 	 * faster and smaller(RAM)
@@ -198,10 +198,7 @@ void Preproc::savePartitions(Context &c) {
 			c.vit.setDegree(i,c.vit.getDegree(i)-dupleNum);
 		}	
 	}
-	delete[] addr;
-	delete[] index;
-	delete[] vertices;
-	delete[] labels;
+	delete[] addr; delete[] index; delete[] vertices; delete[] labels;
 	cout << "DUPLE EDGES: " << totalDuplicateEdges << endl;
 }
 

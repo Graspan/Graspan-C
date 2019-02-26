@@ -2,6 +2,7 @@ CC=g++ -std=c++0x
 
 #use path according to boost installation directory in user machine
 BOOST_PATH=/home/aftab/Downloads/boost_1.62_installed
+#BOOST_PATH=/home/cloud/aftab/Downloads/boost_1.62_installed
 
 export LD_LIBRARY_PATH=$(BOOST_PATH)/lib:$LD_LIBRARY_PATH
 #use paths according to boost installation directory in user machine

@@ -114,13 +114,13 @@ void Partition::update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *ve
 }
 
 void Partition::repart(Partition &p,Context &c) {
-	int totalNumEdges = c.vit.getDegree(this->id);
+	long totalNumEdges = c.vit.getDegree(this->id);
 	int numPartitions = c.getNumPartitions();
 	vertexid_t start = c.vit.getStart(this->id);
 	vertexid_t end = c.vit.getEnd(this->id);
 
-	int curNumEdges = 0;
-	int i;
+	long curNumEdges = 0;
+	vertexid_t i;
 	for(i = 0;i < numVertices;++i) {
 		curNumEdges += index[i];
 		if(curNumEdges >= totalNumEdges / 2) {	
@@ -132,7 +132,7 @@ void Partition::repart(Partition &p,Context &c) {
 	p.setId(numPartitions); 
 	c.setNumPartitions(numPartitions+1);
 	vertexid_t *pAddr = new vertexid_t[numVertices-i-1];
-	for(int j = 0;j < numVertices-1-i;++j) {
+	for(vertexid_t j = 0;j < numVertices-1-i;++j) {
 		pAddr[j] = addr[j+i+1]-addr[i+1];	// calculate offset
 	}
 	p.update(numVertices-1-i,totalNumEdges-curNumEdges,vertices+addr[i+1],labels+addr[i+1],pAddr,index+(i+1));

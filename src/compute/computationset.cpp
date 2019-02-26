@@ -94,15 +94,15 @@ vertexid_t ComputationSet::getIndexInCompSet(vertexid_t vid) {
 	}
 }
 
-vertexid_t ComputationSet::getOldsTotalNumEdges() {
-	vertexid_t num = 0;
+long ComputationSet::getOldsTotalNumEdges() {
+	long num = 0;
 	for(int i = 0;i < size;++i)
 		num += getOldsNumEdges(i);
 	return num;
 }
 
-vertexid_t ComputationSet::getDeltasTotalNumEdges() {
-	vertexid_t num = 0;
+long ComputationSet::getDeltasTotalNumEdges() {
+	long num = 0;
 	for(int i = 0;i < size;++i)
 		num += getDeltasNumEdges(i);		
 	return num;
@@ -116,8 +116,8 @@ vertexid_t ComputationSet::getDeltasNumRealVertices() {
 	return num;
 }
 
-vertexid_t ComputationSet::getNewsTotalNumEdges() {
-	vertexid_t num = 0;
+long ComputationSet::getNewsTotalNumEdges() {
+	long num = 0;
 	for(int i = 0;i < size;++i)
 		num += getNewsNumEdges(i);
 	return num;
@@ -147,15 +147,15 @@ void ComputationSet::clearNews(vertexid_t index) {
 	News[index].clear();	
 }
 
-vertexid_t ComputationSet::getPNumEdges() {
-	vertexid_t res = 0;
+long ComputationSet::getPNumEdges() {
+	long res = 0;
 	for(int i = 0;i < psize;++i)
 		res += (getOldsNumEdges(i) + getDeltasNumEdges(i));
 	return res;
 }
 
-vertexid_t ComputationSet::getQNumEdges() {
-	vertexid_t res = 0;
+long ComputationSet::getQNumEdges() {
+	long res = 0;
 	for(int i = psize;i < size;++i) {
 		res += (getOldsNumEdges(i) + getDeltasNumEdges(i));	
 	}

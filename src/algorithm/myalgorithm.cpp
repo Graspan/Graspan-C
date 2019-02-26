@@ -171,6 +171,30 @@ bool checkEdges(int len,vertexid_t *A,char *B) {
 }
 
 unsigned long int getUsedMemory(const pid_t pid) {
+	unsigned long int vmrss = 0;
+	char fname[256] = {0};
+	sprintf(fname,"/proc/%d/status",pid);
+	FILE *fp = fopen(fname,"r");
+	if(!fp) {
+		cout << "can't read file: " << fname << endl;
+		exit(-1);
+	}
+	else {
+		char dstString[] = "VmRSS:";
+		char line[256] = {0};
+		char name[256] = {0};
+		while(fgets(line,sizeof(line),fp)) {
+			sscanf(line,"%s %lu",name,&vmrss);
+			if(!strcmp(name,dstString))
+				break;	
+		}
+		fclose(fp);
+	}
+	return vmrss * 1024;
+}
+
+/* old version
+unsigned long int getUsedMemory(const pid_t pid) {
 	unsigned long int vmrss = 0;	
 	char fname[256] = {0};
 	sprintf(fname,"/proc/%d/status",pid);
@@ -190,5 +214,6 @@ unsigned long int getUsedMemory(const pid_t pid) {
 	}
 	return vmrss * 1024;
 }
+*/
 
 }

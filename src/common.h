@@ -11,7 +11,7 @@
 using std::cout;
 using std::endl;
 
-#define VMRSS_LINE 21	// in ubuntu os,vmrss_line = 21.
+#define VMRSS_LINE 21	// in ubuntu os,vmrss_line = 21. TODO: modify this number if necessary.
 #define BUFFER_SIZE 256
 #define GRAMMAR_STR_LEN 36
 #define GB 1073741824

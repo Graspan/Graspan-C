@@ -1,6 +1,6 @@
 #include <cstdlib>
-#include <time.h>
 #include <unistd.h>
+#include <ctime>
 #include "compute.h"
 #include "array/arraystomerge.h"
 #include "../algorithm/myalgorithm.h"
@@ -115,20 +115,21 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 		unsigned long int usedMemory = myalgo::getUsedMemory(getpid());
 		if(usedMemory >= (unsigned long int)(0.8 * c.getMemBudget())) {
 			cout << "MEMORY IS OUT! " << endl;
+			cout << "usedMemory: " << usedMemory << " memBudget: " << (unsigned long int)(0.8 * c.getMemBudget()) << endl;
 			isFinished = false;
 			break;
 		}
-		clock_t start_t,end_t;
-		start_t = clock();
+		time_t start_t,end_t;
+		start_t = time(NULL);
 		computeOneIteration(compset,segsize,nSegs,c,ioServ);
 		postProcessOneIteration(compset);
 		long realIterEdges = compset.getDeltasTotalNumEdges();
 		thisRoundEdges += realIterEdges;
-		end_t = clock();
+		end_t = time(NULL);
 		cout << "===== STARTING ITERATION " << iterId++ << "=====" << endl;
 		cout << "EDGES THIS ITER: " << realIterEdges << endl;
 		cout << "NEW EDGES TOTAL: " << thisRoundEdges << endl;	
-		cout << "time: " << (end_t - start_t) / CLOCKS_PER_SEC << "s" << endl << endl;
+		cout << "time: " << end_t - start_t << "s" << endl << endl;
 	
 		if(realIterEdges == 0)
 			break;	
@@ -545,8 +546,9 @@ void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q
 }
 
 void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP) {
-	vertexid_t numEdges,numVertices,offset;
-	vertexid_t realNumEdges = 0;
+	vertexid_t numVertices,offset;
+	long numEdges;
+	long realNumEdges = 0;
 	vertexid_t *edges; char *labels; vertexid_t *addr; vertexid_t *index;
 	if(isP) {
 		numVertices = compset.getPsize();
@@ -613,8 +615,8 @@ void Compute::needRepart(ComputationSet &compset,Partition &p,Partition &q,bool 
 	if(isFinished)
 		repart_p = repart_q = false;
 	else {
-		vertexid_t pNumEdges = p.getNumEdges();
-		vertexid_t qNumEdges = q.getNumEdges();
+		long pNumEdges = p.getNumEdges();
+		long qNumEdges = q.getNumEdges();
 		if(3 * pNumEdges < 2 * qNumEdges) {
 			repart_p = false;
 			repart_q = true;
