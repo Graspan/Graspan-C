@@ -20,6 +20,6 @@ rm *.part
 
 echo "DiskSpa running..."
 logFile="log/$3.$4.$5.output"
-../bin/comp $1 $2 $3 $4 $5 $DATASTRUCTURE
+../bin/comp $1 $2 $3 $4 $5 $DATASTRUCTURE > $logFile
 #../bin/comp $1 $2 $3 $4 $5 $DATASTRUCTURE
 echo "DiskSpa finished"
