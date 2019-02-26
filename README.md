@@ -13,8 +13,7 @@ First, download the entire DiskSpa source code into your machine. Next, edit the
 ### Running DiskSpa
 ```
 cd src
-./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads> array
-./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads> list
+./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads>
 ```
 
 ## 待实现的功能

@@ -4,7 +4,7 @@
 #include "datastructures/grammar.h"
 #include "datastructures/vit.h"
 #include "datastructures/ddm.h"
-enum Datastructure {ARRAY,LIST};
+enum Datastructure {ARRAY,LIST,ARRAY2};
 
 class Context
 {

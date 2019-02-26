@@ -1,5 +1,5 @@
-#ifndef ARRAYSTOMERGE_H
-#define ARRAYSTOMERGE_H
+#ifndef ARRAY_ARRAYSTOMERGE_H
+#define ARRAY_ARRAYSTOMERGE_H
 #include "../../common.h"
 
 #define _CAPACITY_VALUE 8	// TODO: modify this number
@@ -23,13 +23,16 @@ private:
 	int arrayCapacity;	// arrayCapacity = 2 * arraySize
 
 	int numEdges;		// exclude duplicate edges (numEdges <= size)
+	vertexid_t *resEdges;
+	char *resLabels;
+
 public:
 	ArraysToMerge();
 	
 	// getters and setters
 	inline bool isEmpty() {return !arraySize;}
-	inline vertexid_t *getEdgesFirstAddr() {return edges;}
-	inline char* getLabelsFirstAddr() {return labels;}
+	inline vertexid_t *getEdgesFirstAddr() {return resEdges;}
+	inline char* getLabelsFirstAddr() {return resLabels;}
 	inline int getNumEdges() {return numEdges;}
 
 	void clear();
@@ -40,8 +43,7 @@ public:
 	 * after mergeAndSort, index and addr is useless
 	 */
 	void mergeAndSort();
-	void mergeKArrays();	// method 1
-	void sort1();			// method 2
+	void mergeKArrays();
 
 	void print();
 };

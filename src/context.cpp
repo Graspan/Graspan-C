@@ -18,6 +18,10 @@ Context::Context(int argc, char **argv) {
 			datastructure = LIST;
 			cout << graphFile << " " << grammarFile << " " << numPartitions << " " << memBudget << " " << numThreads << " list" << endl;
 		}
+		else if(!strcmp(argv[6],"array2")) {
+			datastructure = ARRAY2;
+			cout << graphFile << " " << grammarFile << " " << numPartitions << " " << memBudget << " " << numThreads << " array2" << endl;
+		}
 		else {
 			datastructure = ARRAY;
 			cout << graphFile << " " << grammarFile << " " << numPartitions << " " << memBudget << " " << numThreads << " array" << endl;

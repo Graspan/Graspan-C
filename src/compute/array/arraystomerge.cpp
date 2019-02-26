@@ -7,6 +7,7 @@ namespace myarray {
 	
 ArraysToMerge::ArraysToMerge() {
 	size = capacity = arraySize = arrayCapacity = numEdges = 0;
+	resEdges = NULL; resLabels = NULL;
 }
 
 void ArraysToMerge::mergeAndSort() {
@@ -56,32 +57,21 @@ void ArraysToMerge::mergeKArrays() {
 		}
 		else
 			myalgo::removeDuple(len,edge_v,edge_l,size,edges,labels);
+		
+		numEdges = len;
 		memcpy(edges,edge_v,sizeof(vertexid_t) * len);
 		memcpy(labels,edge_l,sizeof(char) * len);
-		numEdges = len;
-		delete[] edge_v; delete[] edge_l;
-	}	
-}
-
-void ArraysToMerge::sort1() {
-	if(size) {
-		myalgo::quickSort(this->edges,this->labels,0,size-1);
-		// remove duplicate edges
-		vertexid_t *edge_v = new vertexid_t[size];
-		char *edge_l = new char[size];
-		int len = 0;
-		myalgo::removeDuple(len,edge_v,edge_l,size,edges,labels);
-		memcpy(edges,edge_v,sizeof(vertexid_t)*len);
-		memcpy(labels,edge_l,sizeof(char)*len);
-		numEdges = len;
+		resEdges = edges; resLabels = labels;
 		delete[] edge_v; delete[] edge_l;
 	}	
 }
 
 void ArraysToMerge::clear() {
 	if(capacity) {
-		if(edges) {	delete[] edges; edges = NULL; }
-		if(labels) { delete[] labels; labels = NULL; }
+		if(edges) {	delete[] edges; edges = NULL;}
+		if(resEdges) { resEdges = NULL;}
+		if(labels) { delete[] labels; labels = NULL;}
+		if(resLabels) {  resLabels = NULL;}
 		capacity = size = 0;
 	}	
 	if(arrayCapacity) {

@@ -7,6 +7,7 @@
 #include "computationset.h"
 #include "array/arraystomerge.h"
 #include "list/liststomerge.h"
+#include "array2/arraystomerge.h"
 #include "../datastructures/partition.h"
 #include "../common.h"
 
@@ -33,12 +34,16 @@ public:
 	void postProcessOneIteration(ComputationSet &compset);
 
 	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,myarray::ArraysToMerge &arrays,Context &c);
+	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,myarray2::ArraysToMerge &arrays,Context &c);
 	void getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,mylist::ListsToMerge &lists,Context &c);
 	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c);
+	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c);
 	void genS_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c);
 	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld);
+	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c,bool isOld);
 	void genD_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld);
 	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld);
+	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c,bool isOld);
 	void checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld);
 
 	void updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c);
