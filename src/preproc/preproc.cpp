@@ -1,12 +1,14 @@
 #include <fstream>
 #include <cstdlib>
 #include <string.h>
+#include <limits.h>
 
 #include "preproc.h"
 #include "../algorithm/myalgorithm.h"
 
 Preproc::Preproc() {
-	totalNumEdges = maxVid = totalDuplicateEdges = 0;	
+	totalNumEdges = totalNumVertices = maxVid = totalDuplicateEdges = 0;	
+	minVid = INT_MAX;
 }
 
 Preproc::~Preproc() {
@@ -35,12 +37,15 @@ void Preproc::setNumEdges(Context &c) {
 			int value = atoi(p);
 			if(value > maxVid) 
 				maxVid = value;
+			if(value < minVid)
+				minVid = value;	
 		}	
 	} 
 	fin.close();
+	totalNumVertices = maxVid-minVid+1;
 
-	numEdges = new vertexid_t[maxVid+1];
-	for(int i = 0;i <= maxVid;++i)
+	numEdges = new vertexid_t[totalNumVertices];
+	for(int i = 0;i < totalNumVertices;++i)
 			numEdges[i] = 0;
 	FILE *fp = fopen(fname,"r");
 	if(!fp) {
@@ -50,7 +55,7 @@ void Preproc::setNumEdges(Context &c) {
 	else {
 		int src,dst; char rawLabel[GRAMMAR_STR_LEN];	
 		while(fscanf(fp,"%d\t%d\t%s\n",&src,&dst,rawLabel) != EOF) {
-			++numEdges[src];
+			++numEdges[src-minVid];
 			++totalNumEdges;
 		}	
 	}
@@ -69,18 +74,18 @@ void Preproc::setVIT(Context &c) {
 		numPartitions = 2;
 		c.setNumPartitions(2);
 	}
-	int total_size = totalNumEdges + (maxVid+1) * numErules;
+	int total_size = totalNumEdges + totalNumVertices * numErules;
 	int numRealVertices = 0;
 	if(numErules) 
-		numRealVertices = maxVid+1;
+		numRealVertices = totalNumVertices;
 	else {
-		for(int i = 0;i <= maxVid;++i) {
+		for(int i = 0;i < totalNumVertices;++i) {
 			if(numEdges[i])
 				++numRealVertices;	
 		}	
 	}
 	// numPartitions based on memBudget and user cmd.
-	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * (maxVid+1) + (unsigned long int)8.55 * total_size;
+	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * totalNumVertices + (unsigned long int)8.55 * total_size;
 	unsigned long int b = c.getMemBudget() * 0.4;
 	int minNumPartitions = a / b + 1;
 	if(minNumPartitions > numPartitions) {
@@ -89,11 +94,11 @@ void Preproc::setVIT(Context &c) {
 	}
 
 	int partition_size = (total_size) / numPartitions;
-	int part_id = 0; long cur_size = 0; int i = 0; int v_start = 0;
-	for(;i <= maxVid;++i) {
+	int part_id = 0; long cur_size = 0; vertexid_t v_start = minVid;
+	for(vertexid_t i = 0;i < totalNumVertices;++i) {
 		cur_size += (numErules + numEdges[i]);
 		if(part_id == numPartitions - 1) {
-			for(int j = v_start+1;j <= maxVid;++j)
+			for(vertexid_t j = v_start+1-minVid;j < totalNumVertices;++j)
 				cur_size += (numErules + numEdges[j]);
 			c.vit.add(v_start,maxVid,cur_size);
 			++part_id;
@@ -101,14 +106,14 @@ void Preproc::setVIT(Context &c) {
 		}
 		else {
 			if(cur_size >= partition_size) {
-				c.vit.add(v_start,i,cur_size);
-				v_start = i+1;
+				c.vit.add(v_start,i+minVid,cur_size);
+				v_start = i+1+minVid;
 				cur_size = 0;
 				++part_id;
 			}
 		}	
 	}
-	cout << "NumVertex: " << maxVid+1 << endl;
+	cout << "NumVertex: " << totalNumVertices << endl;
 	cout << "NumEdges: " << total_size << endl;
 	c.ddm.setNumPartitions(numPartitions);
 }
@@ -116,21 +121,21 @@ void Preproc::setVIT(Context &c) {
 void Preproc::savePartitions(Context &c) {
 	
 	int numErules = c.grammar.getNumErules();	
-	long size = totalNumEdges + (maxVid+1) * numErules;
+	long size = totalNumEdges + totalNumVertices * numErules;
 	
 	/* using 1D array instead of 2D array
 	 * faster and smaller(RAM)
 	 */
-	int *addr = new int[(maxVid+1)];
+	int *addr = new int[totalNumVertices];
 	int address = 0;
-	for(int i = 0;i <= maxVid;++i) {
+	for(int i = 0;i < totalNumVertices;++i) {
 		addr[i] = address;
 		address += (numEdges[i] + numErules);
 	}
 	vertexid_t *vertices = new vertexid_t[size];
 	char *labels = new char[size];
-	int *index = new int[maxVid+1];
-	for(int i = 0;i <= maxVid;++i)
+	int *index = new int[totalNumVertices];
+	for(int i = 0;i < totalNumVertices;++i)
 		index[i] = 0;	
 	
 	// add edges of each vertex from graph_file
@@ -141,21 +146,21 @@ void Preproc::savePartitions(Context &c) {
 	}
 	vertexid_t src,dst; char rawLabel[GRAMMAR_STR_LEN];
 	while(fscanf(fp,"%d\t%d\t%s\n",&src,&dst,rawLabel) != EOF) {
-		vertices[addr[src] + index[src]] = dst;
-		labels[addr[src] + index[src]] = c.grammar.getLabelValue(rawLabel);
-		++index[src];
+		vertices[addr[src-minVid] + index[src-minVid]] = dst;
+		labels[addr[src-minVid] + index[src-minVid]] = c.grammar.getLabelValue(rawLabel);
+		++index[src-minVid];
 	}
 	// add e-rule edges
-	for(int i = 0;i <= maxVid;++i) {
+	for(int i = 0;i < totalNumVertices;++i) {
 		for(int j = 0;j < numErules;++j) {
-			vertices[addr[i] + index[i]] = i;
+			vertices[addr[i] + index[i]] = i + minVid;
 			labels[addr[i] + index[i]] = c.grammar.getErule(j);
 			++index[i];
 		}	
 	}
 
 	// sort edges of each vertex
-	for(int i = 0;i <= maxVid;++i)
+	for(int i = 0;i < totalNumVertices;++i)
 		myalgo::quickSort(vertices + addr[i],labels + addr[i],0,index[i]-1);	
 	
 	/* remove duplicate edges of each vertex
@@ -171,7 +176,7 @@ void Preproc::savePartitions(Context &c) {
 		sprintf(filename,"%d.part",i);	
 		FILE *f = fopen(filename,"wb");
 		for(vertexid_t j = v_start; j <= v_end;++j) {
-			int edgeNum = numEdges[j] + numErules;
+			int edgeNum = numEdges[j-minVid] + numErules;
 			if(!edgeNum)
 				continue;
 			
@@ -179,7 +184,7 @@ void Preproc::savePartitions(Context &c) {
 			vertexid_t *edge_v = new vertexid_t[edgeNum];
 			char *edge_l = new char[edgeNum];
 			int len = 1;
-			myalgo::removeDuple(len,edge_v,edge_l,edgeNum,vertices + addr[j],labels + addr[j]);
+			myalgo::removeDuple(len,edge_v,edge_l,edgeNum,vertices + addr[j-minVid],labels + addr[j-minVid]);
 			dupleNum += (edgeNum - len);
 			
 			//save partitions to binary file

@@ -50,7 +50,7 @@ public:
 	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
 
 	void adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished,Context &c);
-	void needRepart(ComputationSet &compset,Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
+	void needRepart(Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
 
 	long startCompute(Context &c);	// return newTotalEdges;
 };

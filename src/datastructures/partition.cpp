@@ -5,29 +5,29 @@
 
 Partition::Partition() {
 	id = -1;
-	numVertices = numEdges = 0;
+	numVertices = 0; numEdges = 0;
 }
 
 Partition::Partition(partitionid_t id) {
 	this->id = id;
-	numVertices = numEdges = 0;
+	numVertices = 0; numEdges = 0;
 }
 
 void Partition::clear() {
-	if(id != -1 && numVertices && numEdges) {	
+	if(id != -1 && numVertices && numEdges) {
 		if(vertices) delete[] vertices;
 		if(labels) delete[] labels;
 		if(addr) delete[] addr;
 		if(index) delete[] index;
 		vertices = NULL; labels = NULL; addr = NULL; index = NULL;
-		id = -1; numVertices = numEdges = 0;
+		id = -1; numVertices = 0; numEdges = 0;
 	}	
 }
 
 bool Partition::check() {
 	for(int i = 0;i < numVertices;++i) {
 			if(myalgo::checkEdges(index[i],vertices + addr[i],labels + addr[i])) 
-				return true;	
+				return true;
 	}	
 	return false;	
 }
@@ -77,7 +77,7 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	for(int i = 0;i < numVertices;++i) {
 		addr[i] = index[i] = 0;
 	}
-	int cur_addr = 0;
+	long cur_addr = 0;
 
 	size_t freadRes = 0; // clear warnings
 	while(fread(&src,sizeof(vertexid_t),1,fp) != 0) {
@@ -123,7 +123,7 @@ void Partition::repart(Partition &p,Context &c) {
 	vertexid_t i;
 	for(i = 0;i < numVertices;++i) {
 		curNumEdges += index[i];
-		if(curNumEdges >= totalNumEdges / 2) {	
+		if(2 * curNumEdges >= totalNumEdges) {	
 			break;	
 		}
 	}

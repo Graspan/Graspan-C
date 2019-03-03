@@ -9,8 +9,10 @@ class Preproc {
 	private:
 		long totalNumEdges;
 		vertexid_t totalDuplicateEdges;
+		vertexid_t minVid;
 		vertexid_t maxVid;
 		vertexid_t *numEdges;        // degree of each vertex. size = maxVid+1
+		vertexid_t totalNumVertices;
 
 	public:
 		Preproc();

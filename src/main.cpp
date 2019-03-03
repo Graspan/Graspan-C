@@ -21,7 +21,9 @@ int main(int argc,char **argv)
 
 	cout << "===========COMPUTE BEGIN=============" << endl;
 	start_t = time(NULL);
-	cout << "NEW EDGES TOTAL: " << run_computation(c) << endl;
+	long newEdges = run_computation(c);
+	c.vit.print();
+	cout << "NEW EDGES TOTAL: " << newEdges << endl;
 	end_t = time(NULL);
 	compTime = end_t - start_t;
 	cout << "===========COMPUTE END===============" << endl;

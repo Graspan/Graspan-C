@@ -29,74 +29,86 @@ long Compute::startCompute(Context &c)  {
 		threadPool.create_thread(boost::bind(&boost::asio::io_service::run,&ioServ));	
 
 	partitionid_t pid,qid;
-	Partition p,q;
+	
 	int roundId = 0;
 	// TODO: better schedular algorithm 
 	while(scheduler(pid,qid,c)) {
-		if(pid != p.getId()) {
-			if(p.getId() != -1)
-				p.writeToFile(p.getId(),c);
-			p.clear();
-			p.loadFromFile(pid,c);
-		}
-		if(qid != q.getId()) {
-			if(q.getId() != -1)	
-				q.writeToFile(q.getId(),c);
-			q.clear();
-			q.loadFromFile(qid,c);
-		}
+		cout << "USED MEMORY: " << myalgo::getUsedMemory(getpid()) << endl;	
+		// load partition p,q from file
+		Partition *p = new Partition();
+		Partition *q = new Partition();
+		p->loadFromFile(pid,c);
+		q->loadFromFile(qid,c);
+
 		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
 		cout << "P = " << pid << " , Q = " << qid << endl;  
 		// check partitions
-		if(p.check() || q.check()) {
+		if(p->check() || q->check()) {
 			cout << "partition p or q duplication happened!" << endl;
 			exit(-1);
 		}
 		// init compset
-		ComputationSet compset;
-		initComputationSet(compset,p,q,c);
+		unsigned long int m1 = myalgo::getUsedMemory(getpid());
+		ComputationSet *compset = new ComputationSet();
+		initComputationSet(*compset,*p,*q,c);
+		unsigned long int m2 = myalgo::getUsedMemory(getpid());
+		cout << "compset memory: " << (m2 - m1) << endl;
+
 		// compute one round 
 		bool isFinished = false;
-		newTotalEdges += computeOneRound(compset,c,ioServ,isFinished);
+		newTotalEdges += computeOneRound(*compset,c,ioServ,isFinished);
 		// update Partitions and adjust VIT and DDM
-		updatePartitions(compset,p,q,isFinished,c);
+		updatePartitions(*compset,*p,*q,isFinished,c);
+
+		m1 = myalgo::getUsedMemory(getpid());
+		compset->clear(); delete compset;
+		m2 = myalgo::getUsedMemory(getpid());
+		cout << "return compset memory: " << (m1 - m2) << endl;
+
 		// repart if out of memory,adjust VIT and DDM
 		bool repartP = false; bool repartQ = false; 
-		Partition p_2,q_2;
-		needRepart(compset,p,q,repartP,repartQ,isFinished,c);
-		if(repartP) p.repart(p_2,c);
-		if(repartQ) q.repart(q_2,c);
+		Partition *p_2 = new Partition();
+		Partition *q_2 = new Partition();
+		needRepart(*p,*q,repartP,repartQ,isFinished,c);
+
+		if(repartP) p->repart(*p_2,c);
+		if(repartQ) q->repart(*q_2,c);
 		int value = (isFinished == true) ? 0 : 1; 
 		if(repartP) {
-			c.ddm.setValue(pid,p_2.getId(),value);	
-			c.ddm.setValue(qid,p_2.getId(),value);	
+			c.ddm.setValue(pid,p_2->getId(),value);	
+			c.ddm.setValue(qid,p_2->getId(),value);	
 			if(repartQ) {
-				c.ddm.setValue(pid,q_2.getId(),value);
-				c.ddm.setValue(qid,q_2.getId(),value);
-				c.ddm.setValue(p_2.getId(),q_2.getId(),value);
+				c.ddm.setValue(pid,q_2->getId(),value);
+				c.ddm.setValue(qid,q_2->getId(),value);
+				c.ddm.setValue(p_2->getId(),q_2->getId(),value);
 			}
 		}
 		else {
 			if(repartQ) {
-				c.ddm.setValue(pid,q_2.getId(),value);
-				c.ddm.setValue(qid,q_2.getId(),value);
+				c.ddm.setValue(pid,q_2->getId(),value);
+				c.ddm.setValue(qid,q_2->getId(),value);
 			}
 		}
 		// check repart partitions
-		if(p_2.check() || q_2.check()) {
+		if(p_2->check() || q_2->check()) {
 			cout << "REPA p_2 or q_2 duplication happened!" << endl;
 			exit(-1);
 		}
 		// write Partitions to File
-		if(repartP) p_2.writeToFile(p_2.getId(),c);
-		if(repartQ) q_2.writeToFile(q_2.getId(),c);	
-		// return resources
-		p_2.clear(); q_2.clear();
-		compset.clear();
+		m1 = myalgo::getUsedMemory(getpid());
+		if(repartP) {p_2->writeToFile(p_2->getId(),c);} //p_2->print(c);}
+		p_2->clear(); delete p_2;
+		if(repartQ) {q_2->writeToFile(q_2->getId(),c);} //q_2->print(c);}
+		q_2->clear(); delete q_2;
+		m2 = myalgo::getUsedMemory(getpid());
+		cout << "return p_2 and q_2 memory: " << (m1 - m2) << endl;
+
+		m1 = myalgo::getUsedMemory(getpid());
+		p->writeToFile(p->getId(),c); p->clear(); delete p;
+		q->writeToFile(q->getId(),c); q->clear(); delete q;
+		m2 = myalgo::getUsedMemory(getpid());
+		cout << "return p and q memory: " << (m1 - m2) << endl;
 	}
-	p.writeToFile(p.getId(),c);
-	q.writeToFile(q.getId(),c);
-	p.clear(); q.clear();
 	return newTotalEdges;	
 }
 
@@ -611,22 +623,9 @@ void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool is
 	}
 }
 
-void Compute::needRepart(ComputationSet &compset,Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
+void Compute::needRepart(Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
 	if(isFinished)
 		repart_p = repart_q = false;
-	else {
-		long pNumEdges = p.getNumEdges();
-		long qNumEdges = q.getNumEdges();
-		if(3 * pNumEdges < 2 * qNumEdges) {
-			repart_p = false;
-			repart_q = true;
-		}
-		else if(2 * pNumEdges < 3 * qNumEdges) {
-			repart_p = repart_q = true;	
-		}		
-		else {
-			repart_p = true;
-			repart_q = false;
-		}
-	}	
+	else
+		repart_p = repart_q = true;	
 }
