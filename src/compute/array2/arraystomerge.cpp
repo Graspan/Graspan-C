@@ -8,7 +8,7 @@ ArraysToMerge::ArraysToMerge() {
 	edges = NULL; labels = NULL; size = capacity = 0;
 }	
 
-void ArraysToMerge::merge() {
+void ArraysToMerge::mergeTwoArray() {
 	if(size) {	
 		int len = 0;
 		vertexid_t *edge_v = new vertexid_t[numEdges+size];
@@ -42,8 +42,8 @@ void ArraysToMerge::setRes(int size,vertexid_t *edges,char *labels) {
 	}
 }
 
-void ArraysToMerge::addOneArray() {
-	merge();
+void ArraysToMerge::addOneContainer() {
+	mergeTwoArray();
 	size = 0;
 	if(!capacity) {
 		capacity = 8;
@@ -81,6 +81,9 @@ void ArraysToMerge::clear() {
 		if(labels) {delete[] labels; labels = NULL;}
 		size = capacity = 0;
 	}			
+}
+void ArraysToMerge::merge() {
+	mergeTwoArray();	
 }
 
 }

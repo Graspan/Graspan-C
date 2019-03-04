@@ -10,10 +10,6 @@ ArraysToMerge::ArraysToMerge() {
 	resEdges = NULL; resLabels = NULL;
 }
 
-void ArraysToMerge::mergeAndSort() {
-	mergeKArrays();
-}
-
 void ArraysToMerge::mergeKArrays() {
 	if(size) {
 		vertexid_t *newEdges;
@@ -82,7 +78,7 @@ void ArraysToMerge::clear() {
 	numEdges = 0;
 }
 
-void ArraysToMerge::addOneArray() {
+void ArraysToMerge::addOneContainer() {
 	if(arraySize == 0) {
 		arrayCapacity = _CAPACITY_VALUE;
 		capacity = CAPACITY_VALUE;
@@ -135,13 +131,8 @@ void ArraysToMerge::addOneEdge(vertexid_t edge,char label) {
 	}
 }
 
-void ArraysToMerge::print() {
-	if(numEdges) {
-		for(int i = 0;i < numEdges;++i) {
-			cout << "(" << edges[i] << "," << (int)labels[i] << ") -> "; 	
-		}
-		cout << "end" << endl;
-	}	
+void ArraysToMerge::merge() {
+	mergeKArrays();	
 }
 
 }

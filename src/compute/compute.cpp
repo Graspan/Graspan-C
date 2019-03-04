@@ -219,82 +219,46 @@ void Compute::postProcessOneIteration(ComputationSet &compset) {
 			compset.clearDeltas(i);
 		compset.clearNews(i);
 	}
-}	
+}
 
 long Compute::computeOneVertex(vertexid_t index,ComputationSet &compset,Context &c) {
 	long newEdgesNum = 0;
 	bool oldEmpty = compset.oldEmpty(index);
 	bool deltaEmpty = compset.deltaEmpty(index);
 	if(oldEmpty && deltaEmpty) return 0;	// if this vertex has no edges, no need to merge.
+	ContainersToMerge *containers;
+	if(c.getDatastructure() == ARRAY)
+		containers = new myarray::ArraysToMerge();
+	else if(c.getDatastructure() == LIST)
+		containers = new mylist::ListsToMerge();
+	else
+		containers = new myarray2::ArraysToMerge();
 
-	if(c.getDatastructure() == ARRAY) {
-		myarray::ArraysToMerge arrays;
-		getEdgesToMerge(index,compset,oldEmpty,deltaEmpty,arrays,c);	// find new edges to arrays.
-		arrays.mergeAndSort(); // merge and sort edges,remove duplicate edges.
-		// add edges to News
-		newEdgesNum = arrays.getNumEdges(); 
-		if(newEdgesNum)
-			compset.setNews(index,newEdgesNum,arrays.getEdgesFirstAddr(),arrays.getLabelsFirstAddr());
-		else
-			compset.clearNews(index);
-		arrays.clear();
-	}
-	else if(c.getDatastructure() == LIST) {
-		mylist::ListsToMerge lists;
-		getEdgesToMerge(index,compset,oldEmpty,deltaEmpty,lists,c);
-		lists.mergeAndSort();
-		newEdgesNum = lists.getNumEdges();
-		if(newEdgesNum)
-			compset.setNews(index,newEdgesNum,lists.getEdgesFirstAddr(),lists.getLabelsFirstAddr());	
-		else
-			compset.clearNews(index);
-		lists.clear();
-	}
-	else {
-		myarray2::ArraysToMerge arrays;
-		getEdgesToMerge(index,compset,oldEmpty,deltaEmpty,arrays,c);
-		arrays.merge();
-		newEdgesNum = arrays.getNumEdges();
-		if(newEdgesNum)
-			compset.setNews(index,newEdgesNum,arrays.getEdgesFirstAddr(),arrays.getLabelsFirstAddr());
-		else
-			compset.clearNews(index);
-		arrays.clear();
-	}
-	return newEdgesNum;	
+	getEdgesToMerge(index,compset,oldEmpty,deltaEmpty,*containers,c);	// find new edges to containers
+	containers->merge();	// merge and sort edges,remove duplicate edges.
+	newEdgesNum = containers->getNumEdges();
+	if(newEdgesNum)
+		compset.setNews(index,newEdgesNum,containers->getEdgesFirstAddr(),containers->getLabelsFirstAddr());
+	else
+		compset.clearNews(index);	
+
+	containers->clear(); delete containers;
+	return newEdgesNum;
 }
 
-void Compute::getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,myarray::ArraysToMerge &arrays,Context &c) {
+void Compute::getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,ContainersToMerge &containers,Context &c) {
 	// add s-rule edges	
 	if(!deltaEmpty) 	
-		genS_RuleEdges(index,compset,arrays,c);
+		genS_RuleEdges(index,compset,containers,c);
 	// add d-rule edges merge Ov of only Dv
 	if(!oldEmpty) 
-		genD_RuleEdges(index,compset,arrays,c,true);
+		genD_RuleEdges(index,compset,containers,c,true);
 	// add d-rule edges merge Dv of (Ov and Dv)
 	if(!deltaEmpty)
-		genD_RuleEdges(index,compset,arrays,c,false);
+		genD_RuleEdges(index,compset,containers,c,false);
 }
 
-void Compute::getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,myarray2::ArraysToMerge &arrays,Context &c) {
-	if(!deltaEmpty) 	
-		genS_RuleEdges(index,compset,arrays,c);
-	if(!oldEmpty) 
-		genD_RuleEdges(index,compset,arrays,c,true);
-	if(!deltaEmpty)
-		genD_RuleEdges(index,compset,arrays,c,false);
-}
-
-void Compute::getEdgesToMerge(vertexid_t index,ComputationSet &compset,bool oldEmpty,bool deltaEmpty,mylist::ListsToMerge &lists,Context &c) {
-	if(!deltaEmpty)
-		genS_RuleEdges(index,compset,lists,c);
-	if(!oldEmpty)
-		genD_RuleEdges(index,compset,lists,c,true);
-	if(!deltaEmpty)
-		genD_RuleEdges(index,compset,lists,c,false);	
-}
-
-void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c) {
+void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,ContainersToMerge &containers,Context &c) {
 	
 	vertexid_t numEdges = compset.getDeltasNumEdges(index);
 	vertexid_t *edges = compset.getDeltasEdges(index);
@@ -306,55 +270,15 @@ void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::A
 		newLabel = c.grammar.checkRules(labels[i]);
 		if(newLabel != (char)127) {
 			if(!added) { 
-				arrays.addOneArray();
+				containers.addOneContainer();
 				added = true;
 			}
-			arrays.addOneEdge(edges[i],newLabel);
+			containers.addOneEdge(edges[i],newLabel);
 		}
 	}
 }
 
-void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c) {
-	
-	vertexid_t numEdges = compset.getDeltasNumEdges(index);
-	vertexid_t *edges = compset.getDeltasEdges(index);
-	char *labels = compset.getDeltasLabels(index);
-
-	char newLabel;
-	bool added = false;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		newLabel = c.grammar.checkRules(labels[i]);
-		if(newLabel != (char)127) {
-			if(!added) { 
-				arrays.addOneArray();
-				added = true;
-			}
-			arrays.addOneEdge(edges[i],newLabel);
-		}
-	}
-}
-
-void Compute::genS_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c) {
-	
-	vertexid_t numEdges = compset.getDeltasNumEdges(index);
-	vertexid_t *edges = compset.getDeltasEdges(index);
-	char *labels = compset.getDeltasLabels(index);
-
-	char newLabel;
-	bool added = false;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		newLabel = c.grammar.checkRules(labels[i]);
-		if(newLabel != (char)127) {
-			if(!added) { 
-				lists.addOneList();
-				added = true;
-			}
-			lists.addOneEdge(edges[i],newLabel);
-		}
-	}
-}
-
-void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld) {
+void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,ContainersToMerge &containers,Context &c,bool isOld) {
 	
 	vertexid_t numEdges;
 	vertexid_t *edges;
@@ -375,60 +299,11 @@ void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray::A
 		indexInCompset = compset.getIndexInCompSet(edges[i]);
 		// if target vertice is in memory
 		if(indexInCompset != -1) 
-			checkEdges(indexInCompset,labels[i],compset,arrays,c,isOld);
+			checkEdges(indexInCompset,labels[i],compset,containers,c,isOld);
 	}	
 }
 
-void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c,bool isOld) {
-	
-	vertexid_t numEdges;
-	vertexid_t *edges;
-	char *labels;
-	if(isOld) {
-		numEdges = compset.getOldsNumEdges(index);
-		edges = compset.getOldsEdges(index);
-		labels = compset.getOldsLabels(index);
-	}
-	else {
-		numEdges = compset.getDeltasNumEdges(index);
-		edges = compset.getDeltasEdges(index);
-		labels = compset.getDeltasLabels(index);
-	}
-
-	vertexid_t indexInCompset;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		indexInCompset = compset.getIndexInCompSet(edges[i]);
-		if(indexInCompset != -1) 
-			checkEdges(indexInCompset,labels[i],compset,arrays,c,isOld);
-	}	
-}
-
-void Compute::genD_RuleEdges(vertexid_t index,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld) {
-	
-	vertexid_t numEdges;
-	vertexid_t *edges;
-	char *labels;
-	if(isOld) {
-		numEdges = compset.getOldsNumEdges(index);
-		edges = compset.getOldsEdges(index);
-		labels = compset.getOldsLabels(index);
-	}
-	else {
-		numEdges = compset.getDeltasNumEdges(index);
-		edges = compset.getDeltasEdges(index);
-		labels = compset.getDeltasLabels(index);
-	}
-
-	vertexid_t indexInCompset;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		indexInCompset = compset.getIndexInCompSet(edges[i]);
-		// if target vertice is in memory
-		if(indexInCompset != -1) 
-			checkEdges(indexInCompset,labels[i],compset,lists,c,isOld);
-	}	
-}
-
-void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,myarray::ArraysToMerge &arrays,Context &c,bool isOld) {
+void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,ContainersToMerge &containers,Context &c,bool isOld) {
 	
 	vertexid_t numEdges;
 	vertexid_t *edges;
@@ -443,10 +318,10 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,m
 		newVal = c.grammar.checkRules(dstVal,labels[i]);
 		if(newVal != (char)127) {
 			if(!added) {
-				arrays.addOneArray();
+				containers.addOneContainer();
 				added = true;
 			}	
-			arrays.addOneEdge(edges[i],newVal);
+			containers.addOneEdge(edges[i],newVal);
 		}
 	}
 	
@@ -459,90 +334,10 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,m
 			newVal = c.grammar.checkRules(dstVal,labels[i]);
 			if(newVal != (char)127) {
 				if(!added) {
-					arrays.addOneArray();
+					containers.addOneContainer();
 					added = true;
 				}	
-				arrays.addOneEdge(edges[i],newVal);
-			}
-		}
-	}
-}
-
-void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,myarray2::ArraysToMerge &arrays,Context &c,bool isOld) {
-	
-	vertexid_t numEdges;
-	vertexid_t *edges;
-	char *labels;
-	numEdges = compset.getDeltasNumEdges(dstInd);
-	edges = compset.getDeltasEdges(dstInd);
-	labels = compset.getDeltasLabels(dstInd);
-	
-	char newVal;
-	bool added = false;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		newVal = c.grammar.checkRules(dstVal,labels[i]);
-		if(newVal != (char)127) {
-			if(!added) {
-				arrays.addOneArray();
-				added = true;
-			}	
-			arrays.addOneEdge(edges[i],newVal);
-		}
-	}
-	
-	if(!isOld) {
-		numEdges = compset.getOldsNumEdges(dstInd);
-		edges = compset.getOldsEdges(dstInd);
-		labels = compset.getOldsLabels(dstInd);
-		added = false;
-		for(vertexid_t i = 0;i < numEdges;++i) {
-			newVal = c.grammar.checkRules(dstVal,labels[i]);
-			if(newVal != (char)127) {
-				if(!added) {
-					arrays.addOneArray();
-					added = true;
-				}	
-				arrays.addOneEdge(edges[i],newVal);
-			}
-		}
-	}
-}
-
-void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,mylist::ListsToMerge &lists,Context &c,bool isOld) {
-	
-	vertexid_t numEdges;
-	vertexid_t *edges;
-	char *labels;
-	numEdges = compset.getDeltasNumEdges(dstInd);
-	edges = compset.getDeltasEdges(dstInd);
-	labels = compset.getDeltasLabels(dstInd);
-	
-	char newVal;
-	bool added = false;
-	for(vertexid_t i = 0;i < numEdges;++i) {
-		newVal = c.grammar.checkRules(dstVal,labels[i]);
-		if(newVal != (char)127) {
-			if(!added) {
-				lists.addOneList();
-				added = true;
-			}	
-			lists.addOneEdge(edges[i],newVal);
-		}
-	}
-	
-	if(!isOld) {
-		numEdges = compset.getOldsNumEdges(dstInd);
-		edges = compset.getOldsEdges(dstInd);
-		labels = compset.getOldsLabels(dstInd);
-		added = false;
-		for(vertexid_t i = 0;i < numEdges;++i) {
-			newVal = c.grammar.checkRules(dstVal,labels[i]);
-			if(newVal != (char)127) {
-				if(!added) {
-					lists.addOneList();
-					added = true;
-				}	
-				lists.addOneEdge(edges[i],newVal);
+				containers.addOneEdge(edges[i],newVal);
 			}
 		}
 	}

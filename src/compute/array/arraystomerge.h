@@ -1,17 +1,17 @@
 #ifndef ARRAY_ARRAYSTOMERGE_H
 #define ARRAY_ARRAYSTOMERGE_H
 #include "../../common.h"
+#include "../containerstomerge.h"
 
 #define _CAPACITY_VALUE 8	// TODO: modify this number
 #define CAPACITY_VALUE 8	// TODO: modify this number
 
 namespace myarray {
-class ArraysToMerge {
+class ArraysToMerge : public ContainersToMerge {
 	/* 	turn vector<vector> to 1D array 
 	 * 	faster and smaller(RAM)
 	 */ 
 private:
-	
 	vertexid_t *edges;	// edges = new vertexid_t[capacity];
 	char *labels;		// labels = new char[capacity];
 	int size;			// size = total number of edges
@@ -28,24 +28,18 @@ private:
 
 public:
 	ArraysToMerge();
-	
 	// getters and setters
 	inline bool isEmpty() {return !arraySize;}
-	inline vertexid_t *getEdgesFirstAddr() {return resEdges;}
-	inline char* getLabelsFirstAddr() {return resLabels;}
-	inline int getNumEdges() {return numEdges;}
-
-	void clear();
-	void addOneArray();
-	void addOneEdge(vertexid_t edge,char label);
-
-	/* TODO: better Sort algorithm
-	 * after mergeAndSort, index and addr is useless
-	 */
-	void mergeAndSort();
 	void mergeKArrays();
 
-	void print();
+	// virtual function
+	virtual void addOneContainer();
+	virtual void addOneEdge(vertexid_t edge,char label);
+	virtual int getNumEdges() {return numEdges;}
+	virtual void merge();
+	virtual vertexid_t* getEdgesFirstAddr() {return resEdges;}
+	virtual char* getLabelsFirstAddr() {return resLabels;}
+	virtual void clear();
 };
 }
 #endif

@@ -11,10 +11,6 @@ ListsToMerge::ListsToMerge() {
 	numOfLists = capacityOfLists = numEdges = 0;
 }
 
-void ListsToMerge::mergeAndSort() {
-	mergeKLists();
-}
-
 void ListsToMerge::mergeKLists() {
 	if(numEdges) {
 		// initial edges,labels
@@ -98,7 +94,7 @@ void ListsToMerge::clear() {
 	}	
 }
 
-void ListsToMerge::addOneList() {
+void ListsToMerge::addOneContainer() {
 	if(numOfLists == 0) {
 		capacityOfLists = 8;
 		lists = new EdgeList[capacityOfLists];
@@ -122,14 +118,8 @@ void ListsToMerge::addOneEdge(vertexid_t edge,char label) {
 		cout << "add edge failed! " << endl;	
 }
 
-void ListsToMerge::print() {
-	/*	
-	for(int i = 0;i < numOfLists;++i)
-		lists[i].print();	
-	*/
-	for(int i = 0;i < numEdges;++i)
-		cout << "(" << edges[i] << " , " << labels[i] << ") -> ";
-	cout << endl;
+void ListsToMerge::merge() {
+	mergeKLists();
 }
 
 }
