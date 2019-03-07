@@ -72,7 +72,7 @@ void Preproc::setVIT(Context &c) {
 	int numPartitions = c.getNumPartitions();
 	if(numPartitions <= 1) {
 		numPartitions = 2;
-		c.setNumPartitions(2);
+		c.setNumPartitions(numPartitions);
 	}
 	int total_size = totalNumEdges + totalNumVertices * numErules;
 	int numRealVertices = 0;
@@ -85,7 +85,7 @@ void Preproc::setVIT(Context &c) {
 		}	
 	}
 	// numPartitions based on memBudget and user cmd.
-	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * totalNumVertices + (unsigned long int)8.55 * total_size;
+	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * totalNumVertices + 8.55 * (unsigned long int)total_size;
 	unsigned long int b = c.getMemBudget() * 0.4;
 	int minNumPartitions = a / b + 1;
 	if(minNumPartitions > numPartitions) {
@@ -126,8 +126,8 @@ void Preproc::savePartitions(Context &c) {
 	/* using 1D array instead of 2D array
 	 * faster and smaller(RAM)
 	 */
-	int *addr = new int[totalNumVertices];
-	int address = 0;
+	long *addr = new long[totalNumVertices];
+	long address = 0;
 	for(int i = 0;i < totalNumVertices;++i) {
 		addr[i] = address;
 		address += (numEdges[i] + numErules);
@@ -150,6 +150,9 @@ void Preproc::savePartitions(Context &c) {
 		labels[addr[src-minVid] + index[src-minVid]] = c.grammar.getLabelValue(rawLabel);
 		++index[src-minVid];
 	}
+
+	
+
 	// add e-rule edges
 	for(int i = 0;i < totalNumVertices;++i) {
 		for(int j = 0;j < numErules;++j) {
@@ -187,6 +190,10 @@ void Preproc::savePartitions(Context &c) {
 			myalgo::removeDuple(len,edge_v,edge_l,edgeNum,vertices + addr[j-minVid],labels + addr[j-minVid]);
 			dupleNum += (edgeNum - len);
 			
+			//initial DDM matrix
+			for(int k = 0;k < len;++k)
+				c.ddm.addDDM(i,c.vit.getPartitionId(edge_v[k]));	
+
 			//save partitions to binary file
 			fwrite((const void*)& j,sizeof(vertexid_t),1,f);
 			fwrite((const void*)& len,sizeof(vertexid_t),1,f);

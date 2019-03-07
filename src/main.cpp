@@ -19,6 +19,7 @@ int main(int argc,char **argv)
 	prepTime = end_t - start_t;
 	cout << "===========PREPROCESS END============" << endl;
 
+	c.ddm.print();
 	cout << "===========COMPUTE BEGIN=============" << endl;
 	start_t = time(NULL);
 	long newEdges = run_computation(c);

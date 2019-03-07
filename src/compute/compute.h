@@ -15,8 +15,7 @@
 class Compute {
 private:
 	long newTotalEdges;
-	bool isNewp;
-	bool isNewq;
+	long oneRoundEdges;
 
 	std::mutex comp_mtx;
 	std::condition_variable cv;
@@ -25,6 +24,7 @@ private:
 
 public:
 	Compute();
+	void loadTwoPartition(Partition *p,Partition *q,partitionid_t new_pid,partitionid_t new_qid,Context &c);
 	void initComputationSet(ComputationSet &compset,Partition &p,Partition &q,Context &c);
 	bool scheduler(partitionid_t &p,partitionid_t &q,Context &c);
 	
@@ -42,7 +42,7 @@ public:
 	void updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c);
 	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
 
-	void adjustDDM(partitionid_t p,bool isNewp,partitionid_t q,bool isNewq,bool isFinished,Context &c);
+	void adjustDDM(Partition &p,Partition &q,bool isFinished,Context &c);
 	void needRepart(Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
 
 	long startCompute(Context &c);	// return newTotalEdges;

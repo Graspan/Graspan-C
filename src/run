@@ -17,8 +17,6 @@ DATASTRUCTURE="array"
 #DATASTRUCTURE="list"
 #DATASTRUCTURE="array2"
 
-rm *.part
-
 echo "DiskSpa running..."
 logFile="log/$3.$4.$5.output"
 ../bin/comp $1 $2 $3 $4 $5 $DATASTRUCTURE

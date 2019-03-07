@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include "partition.h"
 #include "../algorithm/myalgorithm.h"
+#include "../common.h"
 
 Partition::Partition() {
 	id = -1;
@@ -72,10 +73,10 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	
 	vertices = new vertexid_t[numEdges];
 	labels = new char[numEdges];
-	addr = new vertexid_t[numVertices];
+	addr = new long[numVertices];
 	index = new vertexid_t[numVertices];
 	for(int i = 0;i < numVertices;++i) {
-		addr[i] = index[i] = 0;
+		addr[i] = 0; index[i] = 0;
 	}
 	long cur_addr = 0;
 
@@ -101,56 +102,59 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	fclose(fp);
 }
 
-void Partition::update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *vertices,char *labels,vertexid_t *addr,vertexid_t *index) {
+void Partition::update(vertexid_t numVertices,long numEdges,vertexid_t *vertices,char *labels,long *addr,vertexid_t *index) {
 	partitionid_t newId = this->id;
 	this->clear();
 	this->id = newId; this->numEdges = numEdges; this->numVertices = numVertices;
 	this->vertices = new vertexid_t[numEdges]; this->labels = new char[numEdges];
-	this->addr = new vertexid_t[numVertices]; this->index = new vertexid_t[numVertices];
+	this->addr = new long[numVertices]; this->index = new vertexid_t[numVertices];
 	memcpy(this->vertices,vertices,sizeof(vertexid_t) * numEdges);
 	memcpy(this->labels,labels,sizeof(char) * numEdges);
-	memcpy(this->addr,addr,sizeof(vertexid_t) * numVertices);
+	memcpy(this->addr,addr,sizeof(long) * numVertices);
 	memcpy(this->index,index,sizeof(vertexid_t) * numVertices);
 }
 
 void Partition::repart(Partition &p,Context &c) {
+		
 	long totalNumEdges = c.vit.getDegree(this->id);
 	int numPartitions = c.getNumPartitions();
 	vertexid_t start = c.vit.getStart(this->id);
 	vertexid_t end = c.vit.getEnd(this->id);
+	vertexid_t curNumVertices = numVertices / 2;
+	while(!index[curNumVertices])
+		++curNumVertices;
 
 	long curNumEdges = 0;
-	vertexid_t i;
-	for(i = 0;i < numVertices;++i) {
-		curNumEdges += index[i];
-		if(2 * curNumEdges >= totalNumEdges) {	
-			break;	
-		}
+	for(int i = 0;i < curNumVertices;++i) {
+		curNumEdges += index[i];	
 	}
-
 	// update p
-	p.setId(numPartitions); 
+	p.setId(numPartitions);
 	c.setNumPartitions(numPartitions+1);
-	vertexid_t *pAddr = new vertexid_t[numVertices-i-1];
-	for(vertexid_t j = 0;j < numVertices-1-i;++j) {
-		pAddr[j] = addr[j+i+1]-addr[i+1];	// calculate offset
-	}
-	p.update(numVertices-1-i,totalNumEdges-curNumEdges,vertices+addr[i+1],labels+addr[i+1],pAddr,index+(i+1));
+	long *pAddr = new long[numVertices-curNumVertices];
 
+	for(vertexid_t i = 0;i < numVertices-curNumVertices;++i) {
+		if(index[i+curNumVertices])
+			pAddr[i] = addr[i+curNumVertices]-addr[curNumVertices];
+		else
+			pAddr[i] = 0;	
+	}
+	p.update(numVertices-curNumVertices,totalNumEdges-curNumEdges,vertices+addr[curNumVertices],labels+addr[curNumVertices],pAddr,index+curNumVertices);			
 	delete[] pAddr;
-	c.vit.add(start+i+1,end,totalNumEdges-curNumEdges);
+	c.vit.add(start+curNumVertices,end,totalNumEdges-curNumEdges);
 	c.ddm.add();
+
 	// update self
-	numVertices = i+1; numEdges = curNumEdges;
+	numVertices = curNumVertices; numEdges = curNumEdges;
 	vertexid_t *tmpVertices = new vertexid_t[numEdges];	
 	memcpy(tmpVertices,vertices,sizeof(vertexid_t) * numEdges); delete[] vertices; vertices = tmpVertices;	
 	char *tmpLabels = new char[numEdges];
 	memcpy(tmpLabels,labels,sizeof(char) * numEdges); delete[] labels; labels = tmpLabels;
-	vertexid_t *tmpAddr = new vertexid_t[numVertices];
-	memcpy(tmpAddr,addr,sizeof(vertexid_t) * numVertices); delete[] addr; addr = tmpAddr;
+	long *tmpAddr = new long[numVertices];
+	memcpy(tmpAddr,addr,sizeof(long) * numVertices); delete[] addr; addr = tmpAddr;
 	vertexid_t *tmpIndex = new vertexid_t[numVertices];
 	memcpy(tmpIndex,index,sizeof(vertexid_t) * numVertices); delete[] index; index = tmpIndex;
-	c.vit.setVitValue(this->id,start,start+i,curNumEdges);
+	c.vit.setVitValue(this->id,start,start+numVertices-1,curNumEdges);
 }
 
 void Partition::print(Context &c) {

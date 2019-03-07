@@ -11,7 +11,7 @@ private:
 
 	vertexid_t *vertices;
 	char *labels;
-	vertexid_t *addr;
+	long *addr;
 	vertexid_t *index;
 public:		
 	Partition();
@@ -31,7 +31,7 @@ public:
 	bool check();
 	void loadFromFile(partitionid_t id,Context &c);
 	void writeToFile(partitionid_t id,Context &c);
-	void update(vertexid_t numVertices,vertexid_t numEdges,vertexid_t *vertices,char *labels,vertexid_t *addr,vertexid_t *index);
+	void update(vertexid_t numVertices,long numEdges,vertexid_t *vertices,char *labels,long *addr,vertexid_t *index);
 	void repart(Partition &p,Context &c);
 
 	void print(Context &c);
