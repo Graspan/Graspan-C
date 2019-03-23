@@ -18,6 +18,14 @@ Vit::Vit() {
 	p = (VitNode*)calloc(capacity,sizeof(VitNode));
 }
 
+long Vit::getTotalNumEdges() {
+	long res = 0;
+	for(int i = 0;i < size;++i) {
+		res += p[i].degree;	
+	}
+	return res;
+}
+
 void Vit::clear() {
 	if(p) {
 		free(p);
@@ -51,22 +59,11 @@ void Vit::add(vertexid_t start,vertexid_t end,long numEdges) {
 }
 
 partitionid_t Vit::getPartitionId(vertexid_t vid) {
-	partitionid_t low = 0;
-	partitionid_t high = size-1;	
-	partitionid_t mid = (low + high) / 2;
-	while(low <= high) {
-		if(vid >= p[mid].start && vid <= p[mid].end)	
-			break;
-		else if(vid < p[mid].start) {
-			high = mid - 1;
-			mid = (low + high) / 2;
-		}	
-		else {
-			low = mid + 1;
-			mid = (low + high) / 2;
-		}
+	for(partitionid_t i = 0;i < size;++i) {
+		if(vid >= p[i].start && vid <= p[i].end)
+			return i;	
 	}
-	return mid;
+	return -1;
 }
 
 

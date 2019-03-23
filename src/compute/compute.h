@@ -14,8 +14,10 @@
 
 class Compute {
 private:
-	long newTotalEdges;
 	long oneRoundEdges;
+	long numAddedEdgesP;
+	long numAddedEdgesQ;
+	long totalAddedEdges; // only used for log 
 
 	std::mutex comp_mtx;
 	std::condition_variable cv;
@@ -24,7 +26,7 @@ private:
 
 public:
 	Compute();
-	void loadTwoPartition(Partition *p,Partition *q,partitionid_t new_pid,partitionid_t new_qid,Context &c);
+	void loadTwoPartition(Partition &p,Partition &q,partitionid_t new_pid,partitionid_t new_qid,Context &c);
 	void initComputationSet(ComputationSet &compset,Partition &p,Partition &q,Context &c);
 	bool scheduler(partitionid_t &p,partitionid_t &q,Context &c);
 	
@@ -42,8 +44,9 @@ public:
 	void updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c);
 	void updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP);
 
-	void adjustDDM(Partition &p,Partition &q,bool isFinished,Context &c);
-	void needRepart(Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c);
+	void repartAndUpdateVIT(Partition &p,Context &c,bool &compIsFinished,int &numSubPartition,bool isP);
+	void repartAndUpdateDDM(Partition &p,Partition &q,Context &c,bool &compIsFinished);
+	void writeRepartitionsToFile(Partition &p,Context &c,partitionid_t p_start,partitionid_t p_end);
 
 	long startCompute(Context &c);	// return newTotalEdges;
 };

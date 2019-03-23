@@ -8,46 +8,35 @@
 #include <malloc.h>
 
 Compute::Compute() {
-	newTotalEdges = 0; oneRoundEdges = 0;
+	oneRoundEdges = numAddedEdgesP = numAddedEdgesQ = totalAddedEdges = 0;
 }
 
-void loadTwoPartitionFromFile(Partition *p,Partition *q,partitionid_t new_pid,partitionid_t new_qid,Context &c) {
-	// new_pid < new_qid,old_pid < old_qid
-	partitionid_t old_pid = p->getId();	
-	partitionid_t old_qid = q->getId();
+//TODO : modify this method.
+void Compute::loadTwoPartition(Partition &p,Partition &q,partitionid_t new_pid,partitionid_t new_qid,Context &c) {
+	partitionid_t old_pid = p.getId();	
+	partitionid_t old_qid = q.getId();
 	if(old_pid != new_pid) {
 		if(old_pid != -1) {
-			p->writeToFile(old_pid,c);
-			p->clear();
+			p.writeToFile(old_pid,c);
+			p.clear();
 		}
-		p->loadFromFile(new_pid,c);
+		if(new_pid == old_qid) {
+			q.writeToFile(old_qid,c);
+			q.clear();
+		}	
+		p.loadFromFile(new_pid,c);
 	}
 	if(old_qid != new_qid) {
-		if(old_qid != -1) {
-			q->writeToFile(old_qid,c);
-			q->clear();
-		}	
-		q->loadFromFile(new_qid,c);
+		if(q.getId() != -1) {
+			q.writeToFile(old_qid,c);
+			q.clear();
+		}
+		q.loadFromFile(new_qid,c);
 	}
 }
 
 bool Compute::scheduler(partitionid_t &p,partitionid_t &q,Context &c) {
 	return c.ddm.scheduler(p,q);
-}
-
-void Compute::adjustDDM(Partition &p,Partition &q,bool isFinished,Context &c) {
-	partitionid_t pid = p.getId();
-	partitionid_t qid = q.getId();
-
-	// if new edges has been added to partition p and q
-	if(oneRoundEdges) {
-		for(int i = 0;i < c.getNumPartitions();++i) {
-			c.ddm.setNeedCalc(pid,i,true);
-			c.ddm.setNeedCalc(qid,i,true);
-		}
-	}
-	if(isFinished)
-		c.ddm.setNeedCalc(pid,qid,false);	
 }
 
 long Compute::startCompute(Context &c)  {
@@ -60,17 +49,15 @@ long Compute::startCompute(Context &c)  {
 			threadPool.create_thread(boost::bind(&boost::asio::io_service::run,&ioServ));	
 	}
 
+	long oldNumEdges = c.vit.getTotalNumEdges();
 	partitionid_t pid,qid;
-	int roundId = 0;
+ 	int roundId = 0;
 	Partition *p = new Partition();
 	Partition *q = new Partition();
-
-	// TODO: better schedular algorithm 
 	while(scheduler(pid,qid,c)) {
-		cout << "USED MEMORY: " << myalgo::getUsedMemory(getpid()) << endl;	
 		// load partition p,q from file or Memory
-		loadTwoPartitionFromFile(p,q,pid,qid,c);
-		
+		loadTwoPartition(*p,*q,pid,qid,c);
+
 		cout << "=====STARTING ROUND" << roundId++  << "=====" << endl;
 		cout << "P = " << pid << " , Q = " << qid << endl;  
 		// check partitions
@@ -84,52 +71,21 @@ long Compute::startCompute(Context &c)  {
 		// compute one round 
 		bool isFinished = false;
 		oneRoundEdges = computeOneRound(*compset,c,ioServ,isFinished);
-		newTotalEdges += oneRoundEdges;
-		// update Partitions and adjust VIT and DDM
+		// update Partition p and q,adjust VIT
 		updatePartitions(*compset,*p,*q,isFinished,c);
+		cout << "totalAddedEdges: " << totalAddedEdges << endl;
 		// return compset resources
 		compset->clear(); delete compset;
-
-		// repart if out of memory,adjust VIT and DDM
-		bool repartP = false; bool repartQ = false; 
-		Partition *p_2 = new Partition();
-		Partition *q_2 = new Partition();
-		needRepart(*p,*q,repartP,repartQ,isFinished,c);
-
-		if(repartP) p->repart(*p_2,c);
-		if(repartQ) q->repart(*q_2,c);
-		bool value = (isFinished == true) ? false : true; 
-		if(repartP) {
-			c.ddm.setNeedCalc(pid,p_2->getId(),value);	
-			c.ddm.setNeedCalc(qid,p_2->getId(),value);	
-			if(repartQ) {
-				c.ddm.setNeedCalc(pid,q_2->getId(),value);
-				c.ddm.setNeedCalc(qid,q_2->getId(),value);
-				c.ddm.setNeedCalc(p_2->getId(),q_2->getId(),value);
-			}
-		}
-		else {
-			if(repartQ) {
-				c.ddm.setNeedCalc(pid,q_2->getId(),value);
-				c.ddm.setNeedCalc(qid,q_2->getId(),value);
-			}
-		}
-		// check repart partitions
-		if(p_2->check() || q_2->check()) {
-			cout << "REPA p_2 or q_2 duplication happened!" << endl;
-			exit(-1);
-		}
-		// write p_2 and q_2 to File
-		if(repartP) {p_2->writeToFile(p_2->getId(),c);} 
-		p_2->clear(); delete p_2;
-		if(repartQ) {q_2->writeToFile(q_2->getId(),c);} 
-		q_2->clear(); delete q_2;
+		// repart p and q if necessary,update VIT and DDM
+		repartAndUpdateDDM(*p,*q,c,isFinished);
+		c.ddm.print();
 	}
 	if(p->getId() != -1) p->writeToFile(p->getId(),c);
 	p->clear(); delete p;
 	if(q->getId() != -1) q->writeToFile(q->getId(),c); 
 	q->clear(); delete q;
-	return newTotalEdges;	
+	long newNumEdges = c.vit.getTotalNumEdges();
+	return newNumEdges - oldNumEdges;	
 }
 
 void Compute::initComputationSet(ComputationSet &compset,Partition &p,Partition &q,Context &c) {
@@ -138,6 +94,7 @@ void Compute::initComputationSet(ComputationSet &compset,Partition &p,Partition 
 
 long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io_service &ioServ,bool &isFinished) {
 	isFinished = true;
+	numAddedEdgesP = numAddedEdgesQ = 0;
 	long thisRoundEdges = 0;
 	int segsize = compset.getSize() / 64 + 1;
 	int nSegs = compset.getSize() / segsize + 1;
@@ -149,7 +106,6 @@ long Compute::computeOneRound(ComputationSet &compset,Context &c,boost::asio::io
 			malloc_trim(0);
 			usedMemory = myalgo::getUsedMemory(getpid());
 		}
-
 		if(usedMemory >= (unsigned long int)(0.8 * c.getMemBudget())) {
 			cout << "usedMemory: " << usedMemory << " memBudget: " << (unsigned long int)(0.8 * c.getMemBudget()) << endl;
 			isFinished = false;
@@ -373,17 +329,13 @@ void Compute::checkEdges(vertexid_t dstInd,char dstVal,ComputationSet &compset,C
 }
 
 void Compute::updatePartitions(ComputationSet &compset,Partition &p,Partition &q,bool isFinished,Context &c) {
-	// update partition p and q
 	if(oneRoundEdges) { 
 		updateSinglePartition(compset,p,isFinished,c,true);
 		updateSinglePartition(compset,q,isFinished,c,false);
 	}
-	// update DDM
-	adjustDDM(p,q,isFinished,c); 
 }
 
 void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool isFinished,Context &c,bool isP) {
-	if(!oneRoundEdges) return;
 	
 	vertexid_t numVertices,offset;
 	long numEdges;
@@ -410,6 +362,7 @@ void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool is
 		for(vertexid_t i = 0;i < numVertices;++i) {
 			addr[i] = cur_addr;
 			index[i] = compset.getOldsNumEdges(i + offset);
+
 			if(compset.getOldsNumEdges(i + offset)) {
 				memcpy(edges + addr[i],compset.getOldsEdges(i + offset),sizeof(vertexid_t) * index[i]);
 				memcpy(labels + addr[i],compset.getOldsLabels(i + offset),sizeof(char) * index[i]);
@@ -438,25 +391,221 @@ void Compute::updateSinglePartition(ComputationSet &compset,Partition &p,bool is
 			realNumEdges += index[i];
 		}
 	}
+	
+	if(isP) {
+		numAddedEdgesP = realNumEdges - p.getNumEdges();
+		totalAddedEdges += numAddedEdgesP;
+		if(numAddedEdgesP < 0) {
+			cout << "error happened in updateParition P!" << endl;
+			exit(-1);
+		}	
+	}
+	else {
+		numAddedEdgesQ = realNumEdges - p.getNumEdges();
+		totalAddedEdges += numAddedEdgesQ;
+		if(numAddedEdgesQ < 0) {
+			cout << "error happened in updateParition Q! " << endl;
+			exit(-1);
+		}
+	}
 	p.update(numVertices,realNumEdges,edges,labels,addr,index);
 	delete[] edges; delete[] labels; delete[] addr; delete[] index;
 	c.vit.setDegree(p.getId(),realNumEdges);
 }
 
-void Compute::needRepart(Partition &p,Partition &q,bool &repart_p,bool &repart_q,bool isFinished,Context &c) {
-	if(isFinished)
-		repart_p = repart_q = false;
-	else {
-		long numPVertices = p.getNumVertices();
-		long numQVertices = q.getNumVertices();
-		if(numPVertices > 2 * numQVertices) {
-			repart_p = true; repart_q = false;
+void Compute::repartAndUpdateVIT(Partition &p,Context &c,bool &compIsFinished,int &numSubPartition,bool isP) {
+	if(compIsFinished) return;
+
+	partitionid_t pid = p.getId();
+	long numEdges = p.getNumEdges();
+	vertexid_t numVertices = p.getNumVertices();
+	vertexid_t numRealVertices = p.getNumRealVertices();
+	/* two partition used Memory: 5 * numEdges + 12 * numVertices
+	 * compset used Memory: 0.55 * numEdges + 139 * numRealVertices (numRealVertices < numVertices)
+	 * total used Memory: 5.55 * numEdges + 12 * numVertices + 139 * numRealVertices
+	 */ 
+	unsigned long int memoryBuf = c.getMemBudget() * 0.4;
+	unsigned long int memory = (unsigned long int)139 * numRealVertices + (unsigned long int)12 * numVertices + 5.55 * (unsigned long int)numEdges;
+	numSubPartition = (memory > memoryBuf) ? (memory / memoryBuf) : 1;
+	if(numSubPartition) {
+		vertexid_t oldStart = c.vit.getStart(pid);
+		vertexid_t oldEnd = c.vit.getEnd(pid);
+		vertexid_t segSize = (oldEnd - oldStart) / (numSubPartition + 1);
+		numEdges = 0;
+		for(vertexid_t i = 0;i < segSize;++i) {
+			numEdges += p.getIndex(i);	
 		}
-		else if(2 * numPVertices > numQVertices) { 
-			repart_p = true; repart_q = true;
-		}
-		else { 
-			repart_p = false; repart_q = true;	
+		// update VIT[pid]
+		c.vit.setVitValue(pid,oldStart,oldStart+segSize-1,numEdges);
+		// update VIT[n],VIT[n+1],..,VIT[n+numSubPartition-1]
+		for(partitionid_t i = 0;i < numSubPartition;++i) {
+			vertexid_t v_start,v_end;
+			v_start = oldStart + (i + 1) * segSize;
+			v_end = (i != numSubPartition - 1) ? (v_start + segSize - 1) : oldEnd;
+			numEdges = 0;
+			for(vertexid_t i = v_start-oldStart;i <= v_end-oldStart;++i) {
+				numEdges += p.getIndex(i);	
+			}
+			c.vit.add(v_start,v_end,numEdges);
+			c.ddm.add();
 		}
 	}
+}
+
+void Compute::repartAndUpdateDDM(Partition &p,Partition &q,Context &c,bool &compIsFinished) {
+	int numSubP = 0;
+	int numSubQ = 0;
+	int n = c.vit.getSize();
+	partitionid_t pid = p.getId();
+	partitionid_t qid = q.getId();
+
+	// repart p and q if out of memory
+	repartAndUpdateVIT(p,c,compIsFinished,numSubP,true);
+	repartAndUpdateVIT(q,c,compIsFinished,numSubQ,false);
+	
+	// calculate DDM matrix
+	if(!(numAddedEdgesP + numAddedEdgesQ) && compIsFinished) {
+		c.ddm.setDDM(pid,pid,0);
+		c.ddm.setDDM(pid,qid,0);
+		c.ddm.setDDM(qid,pid,0);
+		c.ddm.setDDM(qid,qid,0);
+	}
+	else {
+		int size = c.vit.getSize();
+		for(partitionid_t i = 0;i < size;++i) {
+			if(i == pid || i == qid || (i >= n && i < n+numSubP) || (i >= n+numSubP && i < size)) { // if Parition pi in memory
+					for(partitionid_t j = 0;j < size;++j)
+					c.ddm.setDDM(i,j,0);		
+			}
+		}	
+
+		for(partitionid_t i = 0;i < size;++i) {
+			if(i == pid || (i >= n && i < n+numSubP)) {
+				vertexid_t id_begin = c.vit.getStart(i) - c.vit.getStart(pid); 	
+				vertexid_t id_end = c.vit.getEnd(i) - c.vit.getStart(pid);
+				for(vertexid_t j = id_begin;j <= id_end;++j) {
+					if(p.getIndex(j)) {
+						vertexid_t *edges = p.getEdgesFirstAddr(j);	
+						for(vertexid_t k = 0;k < p.getIndex(j);++k) {
+							vertexid_t dstVid = *(edges + k);	
+							partitionid_t dstPid = c.vit.getPartitionId(dstVid);
+							if(dstPid == pid || (dstPid >= n && dstPid < n+numSubP)) {
+								if(!compIsFinished)	{
+									int degree = p.getIndex(dstVid - c.vit.getStart(pid));
+									c.ddm.setDDM(i,dstPid,c.ddm.getDDM(i,dstPid) + degree);	
+								}	
+							}
+							else if(dstPid == qid || (dstPid >= n+numSubP && dstPid < size)) {
+								if(!compIsFinished) {
+									int degree = q.getIndex(dstVid - c.vit.getStart(qid));
+									c.ddm.setDDM(i,dstPid,c.ddm.getDDM(i,dstPid) + degree);
+								}
+							}
+							else
+								c.ddm.addDDM(i,dstPid);
+						}
+
+					}
+				}
+				for(partitionid_t j = 0;j < size;++j) {
+					if(!(j == pid || j == qid || (j >= n && j < n+numSubP) || (j >= n+numSubP && j < size))) {
+						long tmp = c.ddm.getDDM(i,j) * c.vit.getDegree(j) / (c.vit.getEnd(j) - c.vit.getStart(j) + 1);
+						if(c.ddm.getDDM(i,j) && !tmp) tmp = 1;
+						c.ddm.setDDM(i,j,tmp);
+					}
+				}	
+			}		
+			else if(i == qid || (i >= n+numSubP && i < size)) {
+				vertexid_t id_begin = c.vit.getStart(i) - c.vit.getStart(qid);
+				vertexid_t id_end = c.vit.getEnd(i) - c.vit.getStart(qid);
+				for(vertexid_t j = id_begin;j <= id_end;++j) {
+					if(q.getIndex(j)) {
+						vertexid_t *edges = q.getEdgesFirstAddr(j);
+						for(vertexid_t k = 0;k < q.getIndex(j);++k) {
+							vertexid_t dstVid = *(edges + k);
+							partitionid_t dstPid = c.vit.getPartitionId(dstVid);
+							if(dstPid == pid || (dstPid >= n && dstPid < n+numSubP)) {
+								if(!compIsFinished) {
+									int degree = p.getIndex(dstVid - c.vit.getStart(pid));
+									c.ddm.setDDM(i,dstPid,c.ddm.getDDM(i,dstPid) + degree);
+								}	
+							}
+							else if(dstPid == qid || (dstPid >= n+numSubP && dstPid < size)) {
+								if(!compIsFinished) {
+									int degree = q.getIndex(dstVid - c.vit.getStart(qid));
+									c.ddm.setDDM(i,dstPid,c.ddm.getDDM(i,dstPid) + degree);
+								}	
+							}
+							else 
+								c.ddm.addDDM(i,dstPid);	
+						}
+					}		
+				}
+				for(partitionid_t j = 0;j < size;++j) {
+					if(!(j == pid || j == qid || (j >= n && j < n+numSubP) || (j >= n+numSubP && j < size))) {
+						long tmp = c.ddm.getDDM(i,j) * c.vit.getDegree(j) / (c.vit.getEnd(j) - c.vit.getStart(j) + 1);
+						if(c.ddm.getDDM(i,j) && !tmp) tmp = 1;
+						c.ddm.setDDM(i,j,tmp);	
+					}
+				}
+			}
+			else { // Partition pi out of memory
+				long oldValueP = c.ddm.getDDM(i,pid);
+				long oldValueQ = c.ddm.getDDM(i,qid);
+				long resP = oldValueP/(numSubP+1);
+				long resQ = oldValueQ/(numSubQ+1);
+				if(!resP && oldValueP) resP = 1;
+				if(!resQ && oldValueQ) resQ = 1;
+				for(partitionid_t j = 0;j < size;++j) {
+					if(j == pid || (j >= n && j < n+numSubP))
+						c.ddm.setDDM(i,j,resP);
+					if(j == qid || (j >= n+numSubP && j < size))
+						c.ddm.setDDM(i,j,resQ);	
+				}
+			}
+		}
+		// write all rePartitions to file
+		if(numSubP) 
+			writeRepartitionsToFile(p,c,n,n+numSubP);	
+		if(numSubQ)
+			writeRepartitionsToFile(q,c,n+numSubP,size);	
+	}
+
+}
+
+void Compute::writeRepartitionsToFile(Partition &p,Context &c,partitionid_t p_start,partitionid_t p_end) {
+	partitionid_t id = p.getId();
+	vertexid_t v_start,v_end;
+	vertexid_t offset = c.vit.getStart(id);
+	// write all partitions to file
+	for(partitionid_t i = 0;i < c.vit.getSize();++i) {
+		if(i == id || (i >= p_start && i < p_end)) {
+			char filename[256];
+			sprintf(filename,"%d.part",i);
+			FILE *f = fopen(filename,"wb");
+			if(f == NULL) {
+				cout << "can't open file: " << filename << endl;
+				exit(-1);
+			}
+			v_start = c.vit.getStart(i);
+			v_end = c.vit.getEnd(i);
+
+			for(vertexid_t j = v_start;j <= v_end;++j) {
+				vertexid_t pos = j - offset;
+				vertexid_t degree = p.getIndex(pos);
+				if(!degree)
+					continue;
+				fwrite((const void*)& j,sizeof(vertexid_t),1,f);
+				fwrite((const void*)& degree,sizeof(vertexid_t),1,f);
+				vertexid_t *edges = p.getEdgesFirstAddr(pos);
+				char *labels = p.getLabelsFirstAddr(pos);
+				for(vertexid_t k = 0;k < degree;++k) {
+					fwrite((const void*)& *(edges + k),sizeof(vertexid_t),1,f);
+					fwrite((const void*)& *(labels + k),sizeof(char),1,f);
+				}
+			}
+			fclose(f);
+		}	
+	}
+	p.clear();
 }

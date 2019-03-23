@@ -8,7 +8,7 @@ class Grammar {
 		int numRawLabels;
 
 		char erules[256];	// e-rule
-		int numErules;
+		int numErules;		// number of e-rule
 		char rules[65536];	// s-rule && d-rule
 							// rules[0]~rules[65535] -> (short)-32768 ~ (short)32767
 

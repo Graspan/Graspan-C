@@ -4,6 +4,8 @@
 
 ComputationSet::ComputationSet() {
 	psize = qsize = size = 0;				
+	interval.qFirstVid = interval.qLastVid = -1;
+	interval.qFirstIndex = interval.qLastIndex = -1;
 }
 
 void ComputationSet::clear() {
@@ -57,29 +59,30 @@ void ComputationSet::init(Partition &p,Partition &q,Context &c) {
 	for(int i = 0;i < psize;++i) {
 		Olds[i] = EdgeArray();
 		News[i] = EdgeArray();
-		if(p.getlndex(i)) {
-			Deltas[i] = EdgeArray(p.getlndex(i),p.getEdgesFirstAddr(i),p.getLabelsFirstAddr(i));		
+		if(p.getIndex(i)) {
+			Deltas[i] = EdgeArray(p.getIndex(i),p.getEdgesFirstAddr(i),p.getLabelsFirstAddr(i));		
 		}
 		else {
 			Deltas[i] = EdgeArray();	
 		}
 	}
-
-	for(int i = 0;i < qsize;++i) {
-	 	Olds[psize + i] = EdgeArray();
-		News[psize + i] = EdgeArray();
-		if(q.getlndex(i)) {
-			Deltas[psize + i] = EdgeArray(q.getlndex(i),q.getEdgesFirstAddr(i),q.getLabelsFirstAddr(i));	
-		}
-		else {
-			Deltas[psize + i] = EdgeArray();	
-		}
-	}
-	
 	interval.pFirstVid = c.vit.getStart(p.getId()); interval.pLastVid = interval.pFirstVid + psize - 1;
-	interval.qFirstVid = c.vit.getStart(q.getId()); interval.qLastVid = interval.qFirstVid + qsize - 1;
 	interval.pFirstIndex = 0; interval.pLastIndex = psize - 1;
-	interval.qFirstIndex = psize; interval.qLastIndex = size - 1;
+	
+	if(q.getId() != -1) {
+		for(int i = 0;i < qsize;++i) {
+	 		Olds[psize + i] = EdgeArray();
+			News[psize + i] = EdgeArray();
+			if(q.getIndex(i)) {
+				Deltas[psize + i] = EdgeArray(q.getIndex(i),q.getEdgesFirstAddr(i),q.getLabelsFirstAddr(i));	
+			}
+			else {
+				Deltas[psize + i] = EdgeArray();	
+			}
+		}
+		interval.qFirstVid = c.vit.getStart(q.getId()); interval.qLastVid = interval.qFirstVid + qsize - 1;
+		interval.qFirstIndex = psize; interval.qLastIndex = size - 1;
+	}	
 }
 
 vertexid_t ComputationSet::getIndexInCompSet(vertexid_t vid) {

@@ -14,6 +14,15 @@ Partition::Partition(partitionid_t id) {
 	numVertices = 0; numEdges = 0;
 }
 
+vertexid_t Partition::getNumRealVertices() {
+	vertexid_t numRealVertices = 0;
+	for(vertexid_t i = 0;i < numVertices;++i) {
+		if(index[i])
+			++numRealVertices;	
+	}
+	return numRealVertices;
+}
+
 void Partition::clear() {
 	if(id != -1 && numVertices && numEdges) {
 		if(vertices) delete[] vertices;
@@ -26,6 +35,22 @@ void Partition::clear() {
 }
 
 bool Partition::check() {
+	if(id == -1) return false;
+	
+	long check = 0;
+	for(int i = 0;i < numVertices-1;++i) {
+		if(addr[i+1] - addr[i] != index[i])
+			return false;
+		else
+			check += index[i];	
+	}	
+	check += index[numVertices-1];
+	if(check != numEdges) {
+		cout << "numEdges error!" << endl;
+		cout << "checkNum: " << check << "numEdges: " << numEdges << endl;
+		return false;
+	}
+
 	for(int i = 0;i < numVertices;++i) {
 			if(myalgo::checkEdges(index[i],vertices + addr[i],labels + addr[i])) 
 				return true;
@@ -34,9 +59,15 @@ bool Partition::check() {
 }
 
 void Partition::writeToFile(partitionid_t id,Context &c) {
+	if(id == -1) return;	
+
 	char filename[256];
 	sprintf(filename,"%d.part",id);
 	FILE *f = fopen(filename,"wb");
+	if(f == NULL) {
+		cout << "can't write to file!" << endl;
+		exit(-1);
+	}
 	vertexid_t v_start,v_end;
 	v_start = c.vit.getStart(id);
 	v_end = c.vit.getEnd(id);
@@ -56,6 +87,8 @@ void Partition::writeToFile(partitionid_t id,Context &c) {
 }
 
 void Partition::loadFromFile(partitionid_t id,Context &c) {
+	if(id == -1) return;	
+
 	char fname[256];
 	sprintf(fname,"%d.part",id);
 	FILE *fp = fopen(fname,"rb");
@@ -68,8 +101,6 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	vertexid_t v_end = c.vit.getEnd(id);
 	numVertices = v_end - v_start + 1;
 	numEdges = c.vit.getDegree(id);
-	vertexid_t src,dst,degree;
-	char label;
 	
 	vertices = new vertexid_t[numEdges];
 	labels = new char[numEdges];
@@ -78,12 +109,21 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 	for(int i = 0;i < numVertices;++i) {
 		addr[i] = 0; index[i] = 0;
 	}
-	long cur_addr = 0;
 
+	long cur_addr = 0;
+	vertexid_t preVid = 0;
+	vertexid_t src,dst,degree;
+	char label;
 	size_t freadRes = 0; // clear warnings
 	while(fread(&src,sizeof(vertexid_t),1,fp) != 0) {
 		freadRes = fread(&degree,sizeof(vertexid_t),1,fp);
 		vertexid_t vid = src - v_start;
+		// calculate addr[i] if index[i] is zero.
+		for(vertexid_t i = preVid+1;i < vid;++i) {
+			addr[i] = cur_addr;
+		}
+		preVid = vid;
+
 		addr[vid] = cur_addr;
 		int bufsize = (sizeof(vertexid_t) + sizeof(char)) * degree;	
 		char *buf = (char*)malloc(bufsize);
@@ -99,6 +139,10 @@ void Partition::loadFromFile(partitionid_t id,Context &c) {
 		free(buf);
 		cur_addr += degree;
 	}
+	// calculate addr[i] if index[i] is zero.
+	for(vertexid_t i = preVid+1;i < numVertices;++i) {
+		addr[i] = cur_addr;
+	}
 	fclose(fp);
 }
 
@@ -112,49 +156,6 @@ void Partition::update(vertexid_t numVertices,long numEdges,vertexid_t *vertices
 	memcpy(this->labels,labels,sizeof(char) * numEdges);
 	memcpy(this->addr,addr,sizeof(long) * numVertices);
 	memcpy(this->index,index,sizeof(vertexid_t) * numVertices);
-}
-
-void Partition::repart(Partition &p,Context &c) {
-		
-	long totalNumEdges = c.vit.getDegree(this->id);
-	int numPartitions = c.getNumPartitions();
-	vertexid_t start = c.vit.getStart(this->id);
-	vertexid_t end = c.vit.getEnd(this->id);
-	vertexid_t curNumVertices = numVertices / 2;
-	while(!index[curNumVertices])
-		++curNumVertices;
-
-	long curNumEdges = 0;
-	for(int i = 0;i < curNumVertices;++i) {
-		curNumEdges += index[i];	
-	}
-	// update p
-	p.setId(numPartitions);
-	c.setNumPartitions(numPartitions+1);
-	long *pAddr = new long[numVertices-curNumVertices];
-
-	for(vertexid_t i = 0;i < numVertices-curNumVertices;++i) {
-		if(index[i+curNumVertices])
-			pAddr[i] = addr[i+curNumVertices]-addr[curNumVertices];
-		else
-			pAddr[i] = 0;	
-	}
-	p.update(numVertices-curNumVertices,totalNumEdges-curNumEdges,vertices+addr[curNumVertices],labels+addr[curNumVertices],pAddr,index+curNumVertices);			
-	delete[] pAddr;
-	c.vit.add(start+curNumVertices,end,totalNumEdges-curNumEdges);
-	c.ddm.add();
-
-	// update self
-	numVertices = curNumVertices; numEdges = curNumEdges;
-	vertexid_t *tmpVertices = new vertexid_t[numEdges];	
-	memcpy(tmpVertices,vertices,sizeof(vertexid_t) * numEdges); delete[] vertices; vertices = tmpVertices;	
-	char *tmpLabels = new char[numEdges];
-	memcpy(tmpLabels,labels,sizeof(char) * numEdges); delete[] labels; labels = tmpLabels;
-	long *tmpAddr = new long[numVertices];
-	memcpy(tmpAddr,addr,sizeof(long) * numVertices); delete[] addr; addr = tmpAddr;
-	vertexid_t *tmpIndex = new vertexid_t[numVertices];
-	memcpy(tmpIndex,index,sizeof(vertexid_t) * numVertices); delete[] index; index = tmpIndex;
-	c.vit.setVitValue(this->id,start,start+numVertices-1,curNumEdges);
 }
 
 void Partition::print(Context &c) {

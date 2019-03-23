@@ -45,7 +45,7 @@ void Preproc::setNumEdges(Context &c) {
 	totalNumVertices = maxVid-minVid+1;
 
 	numEdges = new vertexid_t[totalNumVertices];
-	for(int i = 0;i < totalNumVertices;++i)
+	for(vertexid_t i = 0;i < totalNumVertices;++i)
 			numEdges[i] = 0;
 	FILE *fp = fopen(fname,"r");
 	if(!fp) {
@@ -53,7 +53,7 @@ void Preproc::setNumEdges(Context &c) {
 		exit(-1);
 	}
 	else {
-		int src,dst; char rawLabel[GRAMMAR_STR_LEN];	
+		vertexid_t src,dst; char rawLabel[GRAMMAR_STR_LEN];	
 		while(fscanf(fp,"%d\t%d\t%s\n",&src,&dst,rawLabel) != EOF) {
 			++numEdges[src-minVid];
 			++totalNumEdges;
@@ -62,9 +62,9 @@ void Preproc::setNumEdges(Context &c) {
 	fclose(fp);
 	
 }
-/* two partition used memory: 8 * numEdges + 5 * numVertices
+/* two partition used memory: 5 * numEdges + 12 * numVertices
  * compset used memory: 0.55 * numEdges + 139 * numRealVertices (numRealVertices <= numVertices)
- * preproc need memory: 8.55 * numEdges + 5 * numVertices + 139 * numRealVertices;
+ * preproc need memory: 5.55 * numEdges + 12 * numVertices + 139 * numRealVertices;
  */	
 void Preproc::setVIT(Context &c) {
 	setNumEdges(c);	
@@ -74,8 +74,8 @@ void Preproc::setVIT(Context &c) {
 		numPartitions = 2;
 		c.setNumPartitions(numPartitions);
 	}
-	int total_size = totalNumEdges + totalNumVertices * numErules;
-	int numRealVertices = 0;
+	long total_size = totalNumEdges + totalNumVertices * numErules;
+	vertexid_t numRealVertices = 0;
 	if(numErules) 
 		numRealVertices = totalNumVertices;
 	else {
@@ -85,7 +85,7 @@ void Preproc::setVIT(Context &c) {
 		}	
 	}
 	// numPartitions based on memBudget and user cmd.
-	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)5 * totalNumVertices + 8.55 * (unsigned long int)total_size;
+	unsigned long int a = (unsigned long int)139 *numRealVertices + (unsigned long int)12 * totalNumVertices + 5.55 * (unsigned long int)total_size;
 	unsigned long int b = c.getMemBudget() * 0.4;
 	int minNumPartitions = a / b + 1;
 	if(minNumPartitions > numPartitions) {
@@ -93,8 +93,8 @@ void Preproc::setVIT(Context &c) {
 		c.setNumPartitions(numPartitions);
 	}
 
-	int partition_size = (total_size) / numPartitions;
-	int part_id = 0; long cur_size = 0; vertexid_t v_start = minVid;
+	long partition_size = (total_size) / numPartitions;
+	partitionid_t part_id = 0; long cur_size = 0; vertexid_t v_start = minVid;
 	for(vertexid_t i = 0;i < totalNumVertices;++i) {
 		cur_size += (numErules + numEdges[i]);
 		if(part_id == numPartitions - 1) {
@@ -128,14 +128,14 @@ void Preproc::savePartitions(Context &c) {
 	 */
 	long *addr = new long[totalNumVertices];
 	long address = 0;
-	for(int i = 0;i < totalNumVertices;++i) {
+	for(vertexid_t i = 0;i < totalNumVertices;++i) {
 		addr[i] = address;
 		address += (numEdges[i] + numErules);
 	}
 	vertexid_t *vertices = new vertexid_t[size];
 	char *labels = new char[size];
 	int *index = new int[totalNumVertices];
-	for(int i = 0;i < totalNumVertices;++i)
+	for(vertexid_t i = 0;i < totalNumVertices;++i)
 		index[i] = 0;	
 	
 	// add edges of each vertex from graph_file
@@ -150,8 +150,6 @@ void Preproc::savePartitions(Context &c) {
 		labels[addr[src-minVid] + index[src-minVid]] = c.grammar.getLabelValue(rawLabel);
 		++index[src-minVid];
 	}
-
-	
 
 	// add e-rule edges
 	for(int i = 0;i < totalNumVertices;++i) {

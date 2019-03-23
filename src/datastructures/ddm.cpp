@@ -5,7 +5,6 @@ DDM::DDM() {
 	numPartitions = 0;
 	for(int i = 0;i < DDM_SIZE;++i) {
 		for(int j = 0;j < DDM_SIZE;++j)	{
-			needCalc[i][j] = true;
 			ddm[i][j] = 0;
 		}		
 	}	
@@ -13,30 +12,28 @@ DDM::DDM() {
 
 bool DDM::scheduler(partitionid_t &p,partitionid_t &q) {
 	p = q = -1;
-	for(int i = 0;i < numPartitions;++i) {
-		for(int j = i+1;j < numPartitions;++j) {
+	long maxValue = 0;
+	for(partitionid_t i = 0;i < numPartitions;++i) {
+		for(partitionid_t j = i+1;j < numPartitions;++j) {
 			if(i != j) {
-				if(needCalc[i][j] == true) {
-					p = i; q = j;
-					return true;
-				}	
-			}		
-		}			
+				long value = ddm[i][j] + ddm[j][i] + ddm[i][i] + ddm[j][j];
+				if(value > maxValue) {	
+					p = i;
+					q = j;
+					maxValue = value;
+				}
+			}			
+		}	
 	}
-	return false;
+	if(maxValue)
+		return true;
+	else
+		return false;
 }
 
 void DDM::print() {
 	cout << "=====DDM Table=====" << endl;
 	cout << "numPartitions: " << numPartitions << endl;
-	
-	for(int i = 0;i < numPartitions;++i) {
-		for(int j = 0;j < numPartitions;++j) {
-			cout << needCalc[i][j] << " ";			
-		}	
-		cout << endl;
-	}
-	cout << endl;	
 	for(int i = 0;i < numPartitions;++i) {
 		for(int j = 0;j < numPartitions;++j)
 			cout << ddm[i][j] << " ";
