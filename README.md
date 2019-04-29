@@ -16,7 +16,3 @@ cd src
 ./run <graph_file> <grammar_file> <number_partitions> <memory_budget> <num_threads>
 ```
 
-## 待实现的功能
-```
-1.更高效的调度算法.
-```

@@ -49,5 +49,7 @@ public:
 	void writeRepartitionsToFile(Partition &p,Context &c,partitionid_t p_start,partitionid_t p_end);
 
 	long startCompute(Context &c);	// return newTotalEdges;
+
+	void writeAllPartitionsToTxtFile(Context &c);
 };
 #endif

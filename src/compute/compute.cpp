@@ -84,6 +84,9 @@ long Compute::startCompute(Context &c)  {
 	p->clear(); delete p;
 	if(q->getId() != -1) q->writeToFile(q->getId(),c); 
 	q->clear(); delete q;
+
+	writeAllPartitionsToTxtFile(c);
+
 	long newNumEdges = c.vit.getTotalNumEdges();
 	return newNumEdges - oldNumEdges;	
 }
@@ -608,4 +611,44 @@ void Compute::writeRepartitionsToFile(Partition &p,Context &c,partitionid_t p_st
 		}	
 	}
 	p.clear();
+}
+
+void Compute::writeAllPartitionsToTxtFile(Context &c) {
+	char finalFile[256] = "HELLO.txt";
+	sprintf(finalFile,"%s.output",c.getGraphFile());
+	FILE *fp = fopen(finalFile,"w+");
+	cout << "finalFile: " << finalFile << endl;
+	if(!fp) {
+		cout << "can't write to file: " << finalFile << endl;
+		exit(-1);		
+	}	
+
+	for(int i = 0;i < c.vit.getSize();++i) {
+		char partFile[256];
+		sprintf(partFile,"%d.part",i);
+		FILE *f = fopen(partFile,"rb");
+		if(!f) {
+			cout << "can't load partition file: " << partFile << endl;
+			exit(-1);
+		}
+		vertexid_t src,dst,degree;
+		char label;
+		size_t freadRes = 0; //clear warnings
+
+		while(fread(&src,sizeof(vertexid_t),1,f) != 0) {
+			freadRes = fread(&degree,sizeof(vertexid_t),1,f);
+			int bufsize = (sizeof(vertexid_t) + sizeof(char)) * degree;
+			char *buf = (char*)malloc(bufsize);
+			freadRes = fread(buf,bufsize,1,f);
+			for(vertexid_t i = 0;i < bufsize;i += 5) {
+				dst = *((vertexid_t*)(buf + i));
+				label = *((char*)(buf + 4 + i));
+				char *rawLabel = c.grammar.getRawLabel(label);
+				fprintf(fp,"%d\t%d\t%s\n",src,dst,rawLabel);
+			}
+			free(buf);
+		}
+		fclose(f);
+	}
+	fclose(fp);
 }

@@ -17,7 +17,8 @@ class Grammar {
 		// getters and setters
 		int addRawLabel(char *label);
 		char getLabelValue(char *str);
-		
+		inline char *getRawLabel(char value){return rawLabel[value+128];}
+
 		inline int getNumErules() {return numErules;}
 		inline char getErule(int index) {return erules[index];}
 
